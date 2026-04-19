@@ -6,72 +6,67 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // Programas (ej: "Diplomado en Marketing Digital")
+        // Tabla de programas
         Schema::create('programs', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->string('image')->nullable();
+            $table->integer('duration_months')->default(12);
+            $table->integer('total_hours')->default(0);
             $table->decimal('price', 10, 2)->default(0);
-            $table->integer('duration_months')->default(1);
-            $table->boolean('is_active')->default(true);
+            $table->enum('status', ['activo', 'inactivo'])->default('activo');
+            $table->string('image')->nullable();
             $table->timestamps();
         });
 
-        // Cursos dentro de un programa
+        // Tabla de cursos
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('program_id')->constrained()->onDelete('cascade');
+            $table->foreignId('teacher_id')->nullable()->constrained('users')->onDelete('set null');
             $table->string('name');
-            $table->string('slug');
+            $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->integer('order')->default(0);
-            $table->boolean('is_active')->default(true);
+            $table->integer('duration_hours')->default(0);
+            $table->enum('status', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
-
-            $table->unique(['program_id', 'slug']);
         });
 
-        // Módulos dentro de un curso
+        // Tabla de modulos
         Schema::create('modules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('course_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->string('slug');
+            $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->integer('order')->default(0);
-            $table->boolean('is_active')->default(true);
+            $table->integer('duration_hours')->default(0);
+            $table->enum('status', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
-
-            $table->unique(['course_id', 'slug']);
         });
 
-        // Contenidos dentro de un módulo (PDF, video, audio)
+        // Tabla de contenidos
         Schema::create('contents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('module_id')->constrained()->onDelete('cascade');
             $table->string('title');
+            $table->string('slug')->nullable();
             $table->text('description')->nullable();
-            $table->enum('type', ['pdf', 'video', 'audio', 'link', 'text']);
+            $table->enum('type', ['pdf', 'video', 'audio', 'link', 'text'])->default('text');
             $table->string('file_path')->nullable();
             $table->string('external_url')->nullable();
-            $table->text('content_text')->nullable();
-            $table->integer('duration_minutes')->nullable();
+            $table->integer('duration_minutes')->default(0);
             $table->integer('order')->default(0);
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_free')->default(false);
+            $table->enum('status', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('contents');

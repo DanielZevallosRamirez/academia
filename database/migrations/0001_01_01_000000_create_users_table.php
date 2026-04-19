@@ -6,26 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('last_name')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['admin', 'profesor', 'estudiante'])->default('estudiante');
-            $table->string('phone')->nullable();
-            $table->string('dni')->unique()->nullable();
+            $table->enum('status', ['activo', 'inactivo', 'suspendido'])->default('activo');
+            $table->string('phone', 20)->nullable();
+            $table->string('dni', 20)->nullable()->unique();
             $table->text('address')->nullable();
             $table->string('emergency_contact')->nullable();
-            $table->string('emergency_phone')->nullable();
+            $table->string('emergency_phone', 20)->nullable();
             $table->string('photo')->nullable();
-            $table->string('qr_code')->unique()->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('qr_code')->nullable()->unique();
+            $table->date('birth_date')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -46,13 +45,10 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('users');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('sessions');
     }
 };

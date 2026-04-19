@@ -9,12 +9,10 @@ use App\Models\Module;
 use App\Models\Content;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         // Crear usuario administrador
@@ -22,50 +20,52 @@ class DatabaseSeeder extends Seeder
             'name' => 'Administrador',
             'last_name' => 'Sistema',
             'email' => 'admin@academia.com',
-            'password' => Hash::make('admin123'),
+            'password' => Hash::make('password'),
             'role' => 'admin',
             'status' => 'activo',
             'phone' => '999888777',
+            'qr_code' => Str::uuid(),
         ]);
 
-        // Crear profesores de ejemplo
-        $profesor1 = User::create([
+        // Crear profesor
+        $profesor = User::create([
             'name' => 'Carlos',
             'last_name' => 'Rodriguez',
-            'email' => 'carlos.profesor@academia.com',
-            'password' => Hash::make('profesor123'),
+            'email' => 'profesor@academia.com',
+            'password' => Hash::make('password'),
             'role' => 'profesor',
             'status' => 'activo',
-            'phone' => '999111222',
-        ]);
-
-        $profesor2 = User::create([
-            'name' => 'Maria',
-            'last_name' => 'Gonzales',
-            'email' => 'maria.profesora@academia.com',
-            'password' => Hash::make('profesor123'),
-            'role' => 'profesor',
-            'status' => 'activo',
-            'phone' => '999333444',
+            'phone' => '999777666',
+            'qr_code' => Str::uuid(),
         ]);
 
         // Crear estudiantes de ejemplo
-        for ($i = 1; $i <= 10; $i++) {
-            User::create([
-                'name' => "Estudiante $i",
-                'last_name' => "Apellido $i",
-                'email' => "estudiante$i@academia.com",
-                'password' => Hash::make('estudiante123'),
-                'role' => 'estudiante',
-                'status' => 'activo',
-                'dni' => str_pad($i, 8, '7', STR_PAD_LEFT),
-                'phone' => '9' . str_pad($i, 8, '0', STR_PAD_LEFT),
-                'qr_code' => 'QR-STU-' . str_pad($i, 6, '0', STR_PAD_LEFT),
-            ]);
-        }
+        $estudiante1 = User::create([
+            'name' => 'Maria',
+            'last_name' => 'Garcia',
+            'email' => 'estudiante@academia.com',
+            'password' => Hash::make('password'),
+            'role' => 'estudiante',
+            'status' => 'activo',
+            'phone' => '999666555',
+            'dni' => '12345678',
+            'qr_code' => Str::uuid(),
+        ]);
 
-        // Crear programa de ejemplo
-        $programa = Program::create([
+        $estudiante2 = User::create([
+            'name' => 'Juan',
+            'last_name' => 'Lopez',
+            'email' => 'juan@academia.com',
+            'password' => Hash::make('password'),
+            'role' => 'estudiante',
+            'status' => 'activo',
+            'phone' => '999555444',
+            'dni' => '87654321',
+            'qr_code' => Str::uuid(),
+        ]);
+
+        // Crear programa
+        $program = Program::create([
             'name' => 'Diplomado en Desarrollo Web Full Stack',
             'slug' => 'diplomado-desarrollo-web-full-stack',
             'description' => 'Programa completo de desarrollo web que cubre frontend, backend y bases de datos.',
@@ -75,88 +75,117 @@ class DatabaseSeeder extends Seeder
             'status' => 'activo',
         ]);
 
-        // Crear cursos del programa
-        $cursos = [
-            [
-                'name' => 'HTML, CSS y JavaScript',
-                'description' => 'Fundamentos del desarrollo web frontend',
-                'order' => 1,
-                'duration_hours' => 40,
-            ],
-            [
-                'name' => 'React.js',
-                'description' => 'Desarrollo de interfaces modernas con React',
-                'order' => 2,
-                'duration_hours' => 50,
-            ],
-            [
-                'name' => 'Node.js y Express',
-                'description' => 'Backend con JavaScript',
-                'order' => 3,
-                'duration_hours' => 50,
-            ],
-            [
-                'name' => 'Bases de Datos',
-                'description' => 'PostgreSQL y MongoDB',
-                'order' => 4,
-                'duration_hours' => 40,
-            ],
-            [
-                'name' => 'Proyecto Final',
-                'description' => 'Desarrollo de proyecto integrador',
-                'order' => 5,
-                'duration_hours' => 60,
-            ],
-        ];
+        // Crear cursos
+        $curso1 = Course::create([
+            'program_id' => $program->id,
+            'teacher_id' => $profesor->id,
+            'name' => 'HTML, CSS y JavaScript',
+            'slug' => 'html-css-javascript',
+            'description' => 'Fundamentos del desarrollo web frontend.',
+            'order' => 1,
+            'duration_hours' => 40,
+            'status' => 'activo',
+        ]);
 
-        foreach ($cursos as $cursoData) {
-            $curso = Course::create([
-                'program_id' => $programa->id,
-                'name' => $cursoData['name'],
-                'slug' => \Str::slug($cursoData['name']),
-                'description' => $cursoData['description'],
-                'order' => $cursoData['order'],
-                'duration_hours' => $cursoData['duration_hours'],
-                'teacher_id' => $cursoData['order'] <= 2 ? $profesor1->id : $profesor2->id,
-                'status' => 'activo',
-            ]);
+        $curso2 = Course::create([
+            'program_id' => $program->id,
+            'teacher_id' => $profesor->id,
+            'name' => 'PHP y Laravel',
+            'slug' => 'php-laravel',
+            'description' => 'Desarrollo backend con PHP y el framework Laravel.',
+            'order' => 2,
+            'duration_hours' => 60,
+            'status' => 'activo',
+        ]);
 
-            // Crear modulos para cada curso
-            for ($m = 1; $m <= 4; $m++) {
-                $modulo = Module::create([
-                    'course_id' => $curso->id,
-                    'name' => "Modulo $m: Tema " . chr(64 + $m),
-                    'slug' => \Str::slug("modulo-$m-tema-" . chr(64 + $m)),
-                    'description' => "Descripcion del modulo $m del curso {$curso->name}",
-                    'order' => $m,
-                    'duration_hours' => intval($cursoData['duration_hours'] / 4),
-                    'status' => 'activo',
-                ]);
+        // Crear modulos para curso 1
+        $modulo1 = Module::create([
+            'course_id' => $curso1->id,
+            'name' => 'Introduccion a HTML',
+            'slug' => 'introduccion-html',
+            'description' => 'Aprende las bases de HTML.',
+            'order' => 1,
+            'duration_hours' => 10,
+            'status' => 'activo',
+        ]);
 
-                // Crear contenidos para cada modulo
-                $tipos = ['video', 'pdf', 'audio'];
-                foreach ($tipos as $index => $tipo) {
-                    Content::create([
-                        'module_id' => $modulo->id,
-                        'title' => ucfirst($tipo) . " - {$modulo->name}",
-                        'description' => "Contenido de tipo $tipo para el modulo {$modulo->name}",
-                        'type' => $tipo,
-                        'file_path' => "contenidos/{$curso->slug}/{$modulo->slug}/ejemplo.$tipo",
-                        'order' => $index + 1,
-                        'duration_minutes' => $tipo == 'video' ? rand(15, 45) : ($tipo == 'audio' ? rand(10, 30) : null),
-                        'is_free' => $m == 1 && $index == 0,
-                        'status' => 'activo',
-                    ]);
-                }
-            }
-        }
+        $modulo2 = Module::create([
+            'course_id' => $curso1->id,
+            'name' => 'Estilos con CSS',
+            'slug' => 'estilos-css',
+            'description' => 'Aprende a dar estilo a tus paginas.',
+            'order' => 2,
+            'duration_hours' => 15,
+            'status' => 'activo',
+        ]);
 
-        $this->command->info('Base de datos sembrada correctamente!');
+        // Crear contenidos para modulo 1
+        Content::create([
+            'module_id' => $modulo1->id,
+            'title' => 'Video: Que es HTML',
+            'description' => 'Introduccion al lenguaje HTML.',
+            'type' => 'video',
+            'file_path' => 'contenidos/html/intro.mp4',
+            'order' => 1,
+            'duration_minutes' => 15,
+            'is_free' => true,
+            'status' => 'activo',
+        ]);
+
+        Content::create([
+            'module_id' => $modulo1->id,
+            'title' => 'PDF: Estructura basica HTML',
+            'description' => 'Documento con la estructura basica de un archivo HTML.',
+            'type' => 'pdf',
+            'file_path' => 'contenidos/html/estructura.pdf',
+            'order' => 2,
+            'duration_minutes' => 0,
+            'is_free' => false,
+            'status' => 'activo',
+        ]);
+
+        Content::create([
+            'module_id' => $modulo1->id,
+            'title' => 'Video: Etiquetas principales',
+            'description' => 'Las etiquetas mas usadas en HTML.',
+            'type' => 'video',
+            'file_path' => 'contenidos/html/etiquetas.mp4',
+            'order' => 3,
+            'duration_minutes' => 25,
+            'is_free' => false,
+            'status' => 'activo',
+        ]);
+
+        // Crear contenidos para modulo 2
+        Content::create([
+            'module_id' => $modulo2->id,
+            'title' => 'Video: Introduccion a CSS',
+            'description' => 'Que es CSS y como funciona.',
+            'type' => 'video',
+            'file_path' => 'contenidos/css/intro.mp4',
+            'order' => 1,
+            'duration_minutes' => 20,
+            'is_free' => true,
+            'status' => 'activo',
+        ]);
+
+        Content::create([
+            'module_id' => $modulo2->id,
+            'title' => 'PDF: Selectores CSS',
+            'description' => 'Guia completa de selectores CSS.',
+            'type' => 'pdf',
+            'file_path' => 'contenidos/css/selectores.pdf',
+            'order' => 2,
+            'duration_minutes' => 0,
+            'is_free' => false,
+            'status' => 'activo',
+        ]);
+
+        $this->command->info('Base de datos poblada exitosamente!');
         $this->command->info('');
-        $this->command->info('Credenciales de acceso:');
-        $this->command->info('========================');
-        $this->command->info('Admin: admin@academia.com / admin123');
-        $this->command->info('Profesor: carlos.profesor@academia.com / profesor123');
-        $this->command->info('Estudiante: estudiante1@academia.com / estudiante123');
+        $this->command->info('Usuarios creados:');
+        $this->command->info('  Admin: admin@academia.com / password');
+        $this->command->info('  Profesor: profesor@academia.com / password');
+        $this->command->info('  Estudiante: estudiante@academia.com / password');
     }
 }
