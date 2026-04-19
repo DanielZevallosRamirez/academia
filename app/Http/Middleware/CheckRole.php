@@ -11,10 +11,31 @@ class CheckRole
     /**
      * Handle an incoming request.
      *
-     * @param  Closure(Request): (Response)  $next
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        return $next($request);
+        if (!$request->user()) {
+            return redirect()->route('login');
+        }
+
+        $userRole = $request->user()->role;
+
+        // Si no se especifican roles, permitir acceso
+        if (empty($roles)) {
+            return $next($request);
+        }
+
+        // Verificar si el usuario tiene alguno de los roles permitidos
+        if (in_array($userRole, $roles)) {
+            return $next($request);
+        }
+
+        // Si es admin, siempre tiene acceso
+        if ($userRole === 'admin') {
+            return $next($request);
+        }
+
+        abort(403, 'No tienes permiso para acceder a esta sección.');
     }
 }

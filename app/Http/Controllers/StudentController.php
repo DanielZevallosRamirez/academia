@@ -2,63 +2,178 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Enrollment;
+use App\Models\Program;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $query = User::estudiantes()->with(['enrollments.program']);
+
+        // Búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('dni', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtro por estado
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        // Filtro por programa
+        if ($request->filled('program_id')) {
+            $query->whereHas('enrollments', function ($q) use ($request) {
+                $q->where('program_id', $request->program_id);
+            });
+        }
+
+        $students = $query->latest()->paginate(15);
+        $programs = Program::active()->get();
+
+        return view('students.index', compact('students', 'programs'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        $programs = Program::active()->get();
+        return view('students.create', compact('programs'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'nullable|string|max:20',
+            'dni' => 'nullable|string|max:20|unique:users,dni',
+            'address' => 'nullable|string',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|max:20',
+            'photo' => 'nullable|image|max:2048',
+            'program_id' => 'nullable|exists:programs,id',
+            'start_date' => 'required_with:program_id|date',
+            'end_date' => 'required_with:program_id|date|after:start_date',
+        ]);
+
+        // Crear usuario
+        $student = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make(Str::random(10)), // Contraseña temporal
+            'role' => 'estudiante',
+            'phone' => $validated['phone'] ?? null,
+            'dni' => $validated['dni'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'emergency_contact' => $validated['emergency_contact'] ?? null,
+            'emergency_phone' => $validated['emergency_phone'] ?? null,
+            'qr_code' => Str::uuid()->toString(),
+        ]);
+
+        // Subir foto
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('students', 'public');
+            $student->update(['photo' => $path]);
+        }
+
+        // Crear inscripción si se seleccionó un programa
+        if ($request->filled('program_id')) {
+            Enrollment::create([
+                'user_id' => $student->id,
+                'program_id' => $validated['program_id'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'status' => 'activo',
+            ]);
+        }
+
+        return redirect()
+            ->route('students.show', $student)
+            ->with('success', 'Estudiante registrado exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(User $student)
     {
-        //
+        $student->load([
+            'enrollments.program',
+            'enrollments.payments',
+            'attendances.classSession.course',
+            'contentProgress.content.module.course',
+        ]);
+
+        return view('students.show', compact('student'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit(User $student)
     {
-        //
+        $programs = Program::active()->get();
+        return view('students.edit', compact('student', 'programs'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, User $student)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'email', Rule::unique('users')->ignore($student->id)],
+            'phone' => 'nullable|string|max:20',
+            'dni' => ['nullable', 'string', 'max:20', Rule::unique('users')->ignore($student->id)],
+            'address' => 'nullable|string',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|max:20',
+            'photo' => 'nullable|image|max:2048',
+            'is_active' => 'boolean',
+        ]);
+
+        $student->update($validated);
+
+        if ($request->hasFile('photo')) {
+            // Eliminar foto anterior
+            if ($student->photo) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $path = $request->file('photo')->store('students', 'public');
+            $student->update(['photo' => $path]);
+        }
+
+        return redirect()
+            ->route('students.show', $student)
+            ->with('success', 'Estudiante actualizado exitosamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(User $student)
     {
-        //
+        if ($student->photo) {
+            Storage::disk('public')->delete($student->photo);
+        }
+
+        $student->delete();
+
+        return redirect()
+            ->route('students.index')
+            ->with('success', 'Estudiante eliminado exitosamente.');
+    }
+
+    public function qrCode(User $student)
+    {
+        return view('students.qr-code', compact('student'));
+    }
+
+    public function regenerateQr(User $student)
+    {
+        $student->update(['qr_code' => Str::uuid()->toString()]);
+
+        return back()->with('success', 'Código QR regenerado exitosamente.');
     }
 }

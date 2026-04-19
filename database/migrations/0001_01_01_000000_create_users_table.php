@@ -17,6 +17,15 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->enum('role', ['admin', 'profesor', 'estudiante'])->default('estudiante');
+            $table->string('phone')->nullable();
+            $table->string('dni')->unique()->nullable();
+            $table->text('address')->nullable();
+            $table->string('emergency_contact')->nullable();
+            $table->string('emergency_phone')->nullable();
+            $table->string('photo')->nullable();
+            $table->string('qr_code')->unique()->nullable();
+            $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });
@@ -42,8 +51,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };
