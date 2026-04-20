@@ -8,6 +8,7 @@ use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\Program;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,120 +29,104 @@ class DashboardController extends Controller
     private function adminDashboard()
     {
         $stats = [
-            'total_estudiantes' => User::estudiantes()->active()->count(),
-            'total_profesores' => User::profesores()->active()->count(),
-            'total_programas' => Program::active()->count(),
-            'ingresos_mes' => Payment::paid()->thisMonth()->sum('amount'),
-            'pagos_pendientes' => Payment::pending()->count(),
-            'pagos_vencidos' => Payment::overdue()->count(),
+            'total_estudiantes' => User::where('role', 'estudiante')->where('status', 'activo')->count(),
+            'total_profesores' => User::where('role', 'profesor')->where('status', 'activo')->count(),
+            'total_programas' => Program::where('status', 'activo')->count(),
+            'ingresos_mes' => Payment::whereMonth('created_at', Carbon::now()->month)
+                                    ->whereYear('created_at', Carbon::now()->year)
+                                    ->where('status', 'pagado')
+                                    ->sum('amount'),
         ];
 
-        $recentEnrollments = Enrollment::with(['student', 'program'])
-            ->latest()
+        $pagos_pendientes = Payment::where('status', 'pendiente')
+            ->with(['enrollment.student'])
+            ->orderBy('due_date')
             ->take(5)
             ->get();
 
-        $recentPayments = Payment::with(['student', 'enrollment.program'])
-            ->latest()
+        $estudiantes_recientes = User::where('role', 'estudiante')
+            ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
-        $upcomingSessions = ClassSession::with(['course.program', 'professor'])
-            ->upcoming()
-            ->take(5)
+        $inscripciones_por_mes = Enrollment::selectRaw('EXTRACT(MONTH FROM created_at) as mes, COUNT(*) as total')
+            ->whereYear('created_at', Carbon::now()->year)
+            ->groupBy('mes')
+            ->orderBy('mes')
             ->get();
 
         return view('dashboard.admin', compact(
             'stats',
-            'recentEnrollments',
-            'recentPayments',
-            'upcomingSessions'
+            'pagos_pendientes',
+            'estudiantes_recientes',
+            'inscripciones_por_mes'
         ));
     }
 
     private function profesorDashboard(User $user)
     {
-        $todaySessions = ClassSession::with(['course.program', 'attendances'])
-            ->byProfessor($user->id)
-            ->today()
-            ->get();
+        $mis_cursos = $user->coursesAsTeacher()->with('program')->get();
+        
+        $sesiones_hoy = [];
+        $proximas_sesiones = [];
+        $total_estudiantes = 0;
 
-        $upcomingSessions = ClassSession::with(['course.program'])
-            ->byProfessor($user->id)
-            ->upcoming()
-            ->take(5)
-            ->get();
+        if (class_exists('App\Models\ClassSession')) {
+            $sesiones_hoy = ClassSession::whereIn('course_id', $mis_cursos->pluck('id'))
+                ->whereDate('session_date', Carbon::today())
+                ->with('course')
+                ->get();
 
-        $courses = $user->courses()->with('program')->get();
+            $proximas_sesiones = ClassSession::whereIn('course_id', $mis_cursos->pluck('id'))
+                ->where('session_date', '>', Carbon::now())
+                ->orderBy('session_date')
+                ->take(5)
+                ->get();
+        }
 
-        $stats = [
-            'total_cursos' => $courses->count(),
-            'sesiones_hoy' => $todaySessions->count(),
-            'sesiones_mes' => ClassSession::byProfessor($user->id)
-                ->whereMonth('session_date', now()->month)
-                ->count(),
-        ];
+        $total_estudiantes = Enrollment::whereHas('program', function ($query) use ($mis_cursos) {
+            $query->whereIn('id', $mis_cursos->pluck('program_id'));
+        })->where('status', 'activo')->count();
 
         return view('dashboard.profesor', compact(
-            'stats',
-            'todaySessions',
-            'upcomingSessions',
-            'courses'
+            'mis_cursos',
+            'sesiones_hoy',
+            'proximas_sesiones',
+            'total_estudiantes'
         ));
     }
 
     private function estudianteDashboard(User $user)
     {
-        $enrollment = $user->getActiveEnrollment();
-        
-        $program = $enrollment?->program?->load(['courses.modules.contents']);
-        
-        $recentAttendances = Attendance::with(['classSession.course'])
-            ->byStudent($user->id)
-            ->latest()
-            ->take(5)
+        $mis_inscripciones = $user->enrollments()
+            ->with(['program.courses.modules'])
+            ->where('status', 'activo')
             ->get();
 
-        $pendingPayments = Payment::where('user_id', $user->id)
-            ->pending()
-            ->orderBy('due_date')
+        $mis_pagos = Payment::whereHas('enrollment', function ($query) use ($user) {
+            $query->where('student_id', $user->id);
+        })->orderBy('due_date')->get();
+
+        $pago_pendiente = $mis_pagos->where('status', 'pendiente')->first();
+
+        $mi_asistencia = Attendance::where('student_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->take(10)
             ->get();
 
-        $stats = [
-            'asistencia_rate' => $user->getAttendanceRate(),
-            'pagos_pendientes' => $pendingPayments->count(),
-            'dias_restantes' => $enrollment?->days_remaining ?? 0,
-        ];
-
-        // Calcular progreso por curso
-        $courseProgress = [];
-        if ($program) {
-            foreach ($program->courses as $course) {
-                $totalContents = 0;
-                $completedContents = 0;
-                
-                foreach ($course->modules as $module) {
-                    foreach ($module->contents as $content) {
-                        $totalContents++;
-                        if ($content->isCompletedBy($user)) {
-                            $completedContents++;
-                        }
-                    }
-                }
-                
-                $courseProgress[$course->id] = $totalContents > 0 
-                    ? round(($completedContents / $totalContents) * 100, 1) 
-                    : 0;
-            }
+        $progreso_contenidos = 0;
+        if (method_exists($user, 'contentProgress')) {
+            $progreso_contenidos = $user->contentProgress()
+                ->where('completed', true)
+                ->count();
         }
 
         return view('dashboard.estudiante', compact(
-            'enrollment',
-            'program',
-            'recentAttendances',
-            'pendingPayments',
-            'stats',
-            'courseProgress'
+            'mis_inscripciones',
+            'mis_pagos',
+            'pago_pendiente',
+            'mi_asistencia',
+            'progreso_contenidos'
         ));
     }
 }

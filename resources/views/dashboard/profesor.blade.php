@@ -1,164 +1,185 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
+@section('title', 'Dashboard Profesor')
 @section('page-title', 'Mi Dashboard')
+@section('page-description', 'Bienvenido, ' . auth()->user()->name)
 
 @section('content')
 <div class="space-y-6">
     <!-- Greeting -->
-    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-6 text-white">
-        <h1 class="text-2xl font-bold">Bienvenido, {{ auth()->user()->name }}</h1>
-        <p class="mt-1 text-emerald-100">{{ now()->format('l, d \d\e F \d\e Y') }}</p>
+    <div class="bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-violet-200/50">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold">Bienvenido, {{ auth()->user()->name }}</h1>
+                <p class="mt-1 text-violet-100">{{ now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</p>
+            </div>
+            <div class="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span class="font-medium">{{ $mis_cursos->count() }} cursos asignados</span>
+            </div>
+        </div>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="book-open" class="w-6 h-6 text-blue-600"></i>
-                </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm shadow-slate-200/50 border border-slate-200/50">
+            <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-gray-500">Mis Cursos</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['total_cursos'] }}</p>
+                    <p class="text-sm font-medium text-slate-500">Mis Cursos</p>
+                    <p class="text-3xl font-bold text-slate-800 mt-2">{{ $mis_cursos->count() }}</p>
+                    <p class="text-sm text-slate-500 mt-2">Cursos activos</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="calendar-check" class="w-6 h-6 text-emerald-600"></i>
-                </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm shadow-slate-200/50 border border-slate-200/50">
+            <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-gray-500">Sesiones Hoy</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['sesiones_hoy'] }}</p>
+                    <p class="text-sm font-medium text-slate-500">Sesiones Hoy</p>
+                    <p class="text-3xl font-bold text-slate-800 mt-2">{{ is_countable($sesiones_hoy) ? count($sesiones_hoy) : 0 }}</p>
+                    <p class="text-sm text-emerald-600 mt-2 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Programadas
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <i data-lucide="calendar" class="w-6 h-6 text-purple-600"></i>
-                </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm shadow-slate-200/50 border border-slate-200/50">
+            <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-gray-500">Sesiones este Mes</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['sesiones_mes'] }}</p>
+                    <p class="text-sm font-medium text-slate-500">Mis Estudiantes</p>
+                    <p class="text-3xl font-bold text-slate-800 mt-2">{{ $total_estudiantes }}</p>
+                    <p class="text-sm text-slate-500 mt-2">Inscritos activos</p>
+                </div>
+                <div class="w-12 h-12 bg-violet-100 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Today's Sessions -->
-    @if($todaySessions->count() > 0)
-        <div class="bg-white rounded-xl border border-gray-200">
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <i data-lucide="calendar-check" class="w-5 h-5 text-emerald-600"></i>
-                    Sesiones de Hoy
-                </h2>
-            </div>
-            <div class="divide-y divide-gray-100">
-                @foreach($todaySessions as $session)
-                    <div class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-4">
-                                <div class="text-center min-w-[60px]">
-                                    <p class="text-lg font-bold text-gray-900">{{ $session->start_time->format('H:i') }}</p>
-                                    <p class="text-xs text-gray-500">{{ $session->end_time->format('H:i') }}</p>
-                                </div>
-                                <div>
-                                    <h3 class="font-medium text-gray-900">{{ $session->title }}</h3>
-                                    <p class="text-sm text-gray-500">{{ $session->course->name }} - {{ $session->course->program->name }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 text-sm rounded-full
-                                    {{ $session->status === 'en_curso' ? 'bg-green-100 text-green-700' : '' }}
-                                    {{ $session->status === 'programada' ? 'bg-blue-100 text-blue-700' : '' }}
-                                    {{ $session->status === 'finalizada' ? 'bg-gray-100 text-gray-700' : '' }}">
-                                    {{ ucfirst(str_replace('_', ' ', $session->status)) }}
-                                </span>
-                                <a href="{{ route('attendance.session', $session) }}" 
-                                   class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors">
-                                    <i data-lucide="scan-line" class="w-4 h-4 inline mr-1"></i>
-                                    Asistencia
-                                </a>
-                            </div>
-                        </div>
-                        
-                        @php $stats = $session->getAttendanceStats(); @endphp
-                        @if($stats['total'] > 0)
-                            <div class="mt-3 flex items-center gap-4 text-sm">
-                                <span class="text-green-600">{{ $stats['presente'] }} presentes</span>
-                                <span class="text-red-600">{{ $stats['ausente'] }} ausentes</span>
-                                <span class="text-yellow-600">{{ $stats['tardanza'] }} tardanzas</span>
-                            </div>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    @endif
-
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Upcoming Sessions -->
-        <div class="bg-white rounded-xl border border-gray-200">
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Proximas Sesiones</h2>
+        <!-- Mis Cursos -->
+        <div class="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/50 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+                <h2 class="text-base font-semibold text-slate-800">Mis Cursos</h2>
+                <p class="text-sm text-slate-500">Cursos que dicto actualmente</p>
             </div>
-            <div class="divide-y divide-gray-100">
-                @forelse($upcomingSessions as $session)
-                    <div class="p-4 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-gray-100 rounded-xl flex flex-col items-center justify-center">
-                            <span class="text-xs text-gray-500">{{ $session->session_date->format('M') }}</span>
-                            <span class="text-lg font-bold text-gray-900">{{ $session->session_date->format('d') }}</span>
+            <div class="divide-y divide-slate-100">
+                @forelse($mis_cursos as $curso)
+                    <div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                        <div class="w-12 h-12 bg-gradient-to-br from-violet-400 to-violet-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
                         </div>
-                        <div class="flex-1">
-                            <p class="font-medium text-gray-900">{{ $session->title }}</p>
-                            <p class="text-sm text-gray-500">{{ $session->course->name }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-800 truncate">{{ $curso->name }}</p>
+                            <p class="text-xs text-slate-500">{{ $curso->program->name ?? 'Sin programa' }}</p>
                         </div>
-                        <div class="text-right text-sm text-gray-500">
-                            {{ $session->start_time->format('H:i') }}
-                        </div>
-                    </div>
-                @empty
-                    <div class="p-8 text-center text-gray-500">
-                        <i data-lucide="calendar-x" class="w-12 h-12 mx-auto text-gray-300 mb-2"></i>
-                        <p>No hay sesiones programadas</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
-        <!-- My Courses -->
-        <div class="bg-white rounded-xl border border-gray-200">
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Mis Cursos</h2>
-            </div>
-            <div class="divide-y divide-gray-100">
-                @forelse($courses as $course)
-                    <div class="p-4 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                            <i data-lucide="book-open" class="w-6 h-6 text-emerald-600"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="font-medium text-gray-900">{{ $course->name }}</p>
-                            <p class="text-sm text-gray-500">{{ $course->program->name }}</p>
-                        </div>
-                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
-                            {{ $course->modules->count() }} modulos
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                            {{ $curso->modules->count() ?? 0 }} modulos
                         </span>
                     </div>
                 @empty
-                    <div class="p-8 text-center text-gray-500">
-                        <i data-lucide="book-x" class="w-12 h-12 mx-auto text-gray-300 mb-2"></i>
-                        <p>No tienes cursos asignados</p>
+                    <div class="px-6 py-12 text-center">
+                        <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-slate-600">Sin cursos asignados</p>
+                        <p class="text-xs text-slate-500 mt-1">No tienes cursos asignados aun</p>
                     </div>
                 @endforelse
             </div>
         </div>
+
+        <!-- Proximas Sesiones -->
+        <div class="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200/50 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+                <h2 class="text-base font-semibold text-slate-800">Proximas Sesiones</h2>
+                <p class="text-sm text-slate-500">Clases programadas</p>
+            </div>
+            <div class="divide-y divide-slate-100">
+                @forelse($proximas_sesiones as $sesion)
+                    <div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                        <div class="w-12 h-12 bg-slate-100 rounded-xl flex flex-col items-center justify-center flex-shrink-0">
+                            <span class="text-xs text-slate-500 uppercase">{{ $sesion->session_date->format('M') }}</span>
+                            <span class="text-lg font-bold text-slate-800">{{ $sesion->session_date->format('d') }}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-800 truncate">{{ $sesion->title }}</p>
+                            <p class="text-xs text-slate-500">{{ $sesion->course->name ?? 'Sin curso' }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-slate-800">{{ $sesion->start_time->format('H:i') ?? '' }}</p>
+                            <p class="text-xs text-slate-500">hrs</p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-6 py-12 text-center">
+                        <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-slate-600">Sin sesiones programadas</p>
+                        <p class="text-xs text-slate-500 mt-1">No hay clases proximas</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <a href="{{ route('attendance.index') }}" class="bg-white rounded-2xl p-5 shadow-sm shadow-slate-200/50 border border-slate-200/50 hover:border-violet-300 hover:shadow-md transition-all group">
+            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+            </div>
+            <p class="font-medium text-slate-800">Tomar Asistencia</p>
+            <p class="text-sm text-slate-500 mt-1">Registrar asistencia</p>
+        </a>
+
+        <a href="{{ route('programs.index') }}" class="bg-white rounded-2xl p-5 shadow-sm shadow-slate-200/50 border border-slate-200/50 hover:border-violet-300 hover:shadow-md transition-all group">
+            <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+            </div>
+            <p class="font-medium text-slate-800">Ver Programas</p>
+            <p class="text-sm text-slate-500 mt-1">Contenido de cursos</p>
+        </a>
+
+        <a href="{{ route('profile.edit') }}" class="bg-white rounded-2xl p-5 shadow-sm shadow-slate-200/50 border border-slate-200/50 hover:border-violet-300 hover:shadow-md transition-all group">
+            <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+            </div>
+            <p class="font-medium text-slate-800">Mi Perfil</p>
+            <p class="text-sm text-slate-500 mt-1">Configurar cuenta</p>
+        </a>
     </div>
 </div>
 @endsection
