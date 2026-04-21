@@ -18,9 +18,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'last_name',
         'email',
         'password',
         'role',
+        'status',
         'phone',
         'dni',
         'address',
@@ -28,7 +30,7 @@ class User extends Authenticatable
         'emergency_phone',
         'photo',
         'qr_code',
-        'is_active',
+        'birth_date',
     ];
 
     /**
@@ -47,7 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_active' => 'boolean',
+            'birth_date' => 'date',
         ];
     }
 
@@ -147,7 +149,7 @@ class User extends Authenticatable
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', 'activo');
     }
 
     public function scopeByRole($query, string $role)

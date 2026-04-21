@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
+use Intervention\Image\Facades\Image;
 
 class ProfileController extends Controller
 {
@@ -28,7 +30,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Actualizar perfil del usuario
+     * Actualizar perfil del usuario (incluye foto)
      */
     public function update(Request $request)
     {
@@ -44,11 +46,34 @@ class ProfileController extends Controller
             'emergency_contact' => ['nullable', 'string', 'max:255'],
             'emergency_phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
+            'cropped_photo' => ['nullable', 'string'], // Base64 de imagen recortada
         ]);
+
+        // Procesar imagen recortada si existe
+        if ($request->filled('cropped_photo')) {
+            // Eliminar foto anterior si existe
+            if ($user->photo && Storage::disk('public')->exists($user->photo)) {
+                Storage::disk('public')->delete($user->photo);
+            }
+
+            // Decodificar base64 y guardar
+            $imageData = $request->input('cropped_photo');
+            $imageData = str_replace('data:image/png;base64,', '', $imageData);
+            $imageData = str_replace('data:image/jpeg;base64,', '', $imageData);
+            $imageData = str_replace(' ', '+', $imageData);
+            
+            $imageName = 'photos/' . uniqid() . '_' . time() . '.png';
+            Storage::disk('public')->put($imageName, base64_decode($imageData));
+            
+            $validated['photo'] = $imageName;
+        }
+
+        // Remover cropped_photo del array de validados
+        unset($validated['cropped_photo']);
 
         $user->update($validated);
 
-        return redirect()->route('profile.show')->with('success', 'Perfil actualizado correctamente.');
+        return redirect()->route('profile.edit')->with('success', 'Perfil actualizado correctamente.');
     }
 
     /**
@@ -65,25 +90,22 @@ class ProfileController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        return redirect()->route('profile.show')->with('success', 'Contrasena actualizada correctamente.');
+        return redirect()->route('profile.edit')->with('success', 'Contrasena actualizada correctamente.');
     }
 
     /**
-     * Actualizar foto de perfil
+     * Eliminar foto de perfil
      */
-    public function updatePhoto(Request $request)
+    public function deletePhoto(Request $request)
     {
-        $request->validate([
-            'photo' => ['required', 'image', 'max:2048'],
-        ]);
-
         $user = Auth::user();
 
-        if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('photos', 'public');
-            $user->update(['photo' => $path]);
+        if ($user->photo && Storage::disk('public')->exists($user->photo)) {
+            Storage::disk('public')->delete($user->photo);
         }
 
-        return redirect()->route('profile.show')->with('success', 'Foto actualizada correctamente.');
+        $user->update(['photo' => null]);
+
+        return response()->json(['success' => true, 'message' => 'Foto eliminada correctamente.']);
     }
 }
