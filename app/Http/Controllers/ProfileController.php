@@ -2,59 +2,88 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Mostrar el perfil del usuario
      */
-    public function edit(Request $request): View
+    public function show()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $user = Auth::user();
+        return view('profile.show', compact('user'));
     }
 
     /**
-     * Update the user's profile information.
+     * Mostrar formulario de edicion
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function edit()
     {
-        $request->user()->fill($request->validated());
+        $user = Auth::user();
+        return view('profile.edit', compact('user'));
+    }
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+    /**
+     * Actualizar perfil del usuario
+     */
+    public function update(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'dni' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'emergency_contact' => ['nullable', 'string', 'max:255'],
+            'emergency_phone' => ['nullable', 'string', 'max:20'],
+            'birth_date' => ['nullable', 'date'],
+        ]);
+
+        $user->update($validated);
+
+        return redirect()->route('profile.show')->with('success', 'Perfil actualizado correctamente.');
+    }
+
+    /**
+     * Actualizar contrasena
+     */
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        Auth::user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return redirect()->route('profile.show')->with('success', 'Contrasena actualizada correctamente.');
+    }
+
+    /**
+     * Actualizar foto de perfil
+     */
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => ['required', 'image', 'max:2048'],
+        ]);
+
+        $user = Auth::user();
+
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('photos', 'public');
+            $user->update(['photo' => $path]);
         }
 
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return redirect()->route('profile.show')->with('success', 'Foto actualizada correctamente.');
     }
 }
