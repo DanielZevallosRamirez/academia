@@ -37,7 +37,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-600">Recaudado este mes</p>
-                    <p class="text-2xl font-bold text-gray-900">S/ {{ number_format($stats['month_total'] ?? 0, 2) }}</p>
+                    <p class="text-2xl font-bold text-gray-900">S/ {{ number_format($stats['total_pagado_mes'] ?? 0, 2) }}</p>
                 </div>
             </div>
         </div>
@@ -51,7 +51,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-600">Pagos pendientes</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['pending_count'] ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $stats['cantidad_pendientes'] ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -65,7 +65,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-600">Pagos vencidos</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['overdue_count'] ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ $stats['cantidad_vencidos'] ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -78,8 +78,8 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600">Total pagos hoy</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['today_count'] ?? 0 }}</p>
+                    <p class="text-sm text-gray-600">Total pendiente</p>
+                    <p class="text-2xl font-bold text-gray-900">S/ {{ number_format($stats['total_pendiente'] ?? 0, 2) }}</p>
                 </div>
             </div>
         </div>

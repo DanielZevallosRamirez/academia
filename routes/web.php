@@ -56,7 +56,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('contents/{content}', [ProgramController::class, 'destroyContent'])->name('contents.destroy');
 
         // Pagos
-        Route::resource('payments', PaymentController::class);
+    Route::resource('payments', PaymentController::class);
+    Route::get('payments-pending', [PaymentController::class, 'pending'])->name('payments.pending');
+    Route::get('payments/{payment}/process', [PaymentController::class, 'process'])->name('payments.process');
+    Route::post('payments/{payment}/process', [PaymentController::class, 'processPayment'])->name('payments.process.store');
+    Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
         Route::post('payments/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('payments.mark-paid');
         Route::post('payments/{payment}/documents', [PaymentController::class, 'uploadDocument'])->name('payments.upload-document');
         Route::delete('payment-documents/{document}', [PaymentController::class, 'deleteDocument'])->name('payment-documents.destroy');
@@ -102,6 +106,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     Route::resource('programs', ProgramController::class);
     Route::resource('payments', PaymentController::class);
+    Route::get('payments-pending', [PaymentController::class, 'pending'])->name('payments.pending');
+    Route::get('payments/{payment}/process', [PaymentController::class, 'process'])->name('payments.process');
+    Route::post('payments/{payment}/process', [PaymentController::class, 'processPayment'])->name('payments.process.store');
+    Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+    Route::post('payments/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('payments.mark-paid');
     
     Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('attendance/create-session', [AttendanceController::class, 'createSession'])->name('attendance.create-session');

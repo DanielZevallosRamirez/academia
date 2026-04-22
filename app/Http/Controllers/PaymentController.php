@@ -57,11 +57,16 @@ class PaymentController extends Controller
     public function create(Request $request)
     {
         $students = User::estudiantes()->active()->with('enrollments.program')->get();
+        $enrollments = Enrollment::with(['student', 'program'])
+            ->whereHas('student', function($q) {
+                $q->where('status', 'activo');
+            })
+            ->get();
         $selectedStudent = $request->filled('student_id') 
             ? User::find($request->student_id) 
             : null;
 
-        return view('payments.create', compact('students', 'selectedStudent'));
+        return view('payments.create', compact('students', 'selectedStudent', 'enrollments'));
     }
 
     public function store(Request $request)
@@ -229,5 +234,55 @@ class PaymentController extends Controller
             ->paginate(15);
 
         return view('payments.overdue', compact('payments'));
+    }
+
+    public function pending()
+    {
+        $payments = Payment::with(['student', 'enrollment.program'])
+            ->pending()
+            ->orderBy('due_date')
+            ->paginate(15);
+
+        return view('payments.pending', compact('payments'));
+    }
+
+    public function process(Payment $payment)
+    {
+        $payment->load(['student', 'enrollment.program']);
+
+        return view('payments.process', compact('payment'));
+    }
+
+    public function processPayment(Request $request, Payment $payment)
+    {
+        $validated = $request->validate([
+            'amount_paid' => 'required|numeric|min:0.01|max:' . $payment->amount,
+            'payment_method' => 'required|in:efectivo,transferencia,tarjeta,yape',
+            'transaction_id' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $amountPaid = $validated['amount_paid'];
+        $totalPaid = ($payment->amount_paid ?? 0) + $amountPaid;
+
+        $payment->update([
+            'amount_paid' => $totalPaid,
+            'payment_method' => $validated['payment_method'],
+            'transaction_id' => $validated['transaction_id'],
+            'notes' => $validated['notes'],
+            'status' => $totalPaid >= $payment->amount ? 'pagado' : 'parcial',
+            'paid_at' => $totalPaid >= $payment->amount ? now() : null,
+        ]);
+
+        return redirect()
+            ->route('payments.show', $payment)
+            ->with('success', 'Pago procesado exitosamente.');
+    }
+
+    public function receipt(Payment $payment)
+    {
+        $payment->load(['student', 'enrollment.program']);
+
+        return view('payments.receipt', compact('payment'));
     }
 }
