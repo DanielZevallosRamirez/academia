@@ -120,7 +120,7 @@
 </div>
 
 @push('scripts')
-<script src="https://rawgit.com/AcademicoMDP/html5-qrcode/master/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 let html5QrCode = null;
 let isScanning = false;
@@ -134,7 +134,18 @@ document.getElementById('toggleCamera').addEventListener('click', function() {
 });
 
 function startScanner() {
-    html5QrCode = new Html5Qrcode("preview");
+    // Crear un contenedor para el escaner si no existe
+    const previewElement = document.getElementById('preview');
+    if (!document.getElementById('qr-reader')) {
+        const qrReader = document.createElement('div');
+        qrReader.id = 'qr-reader';
+        qrReader.style.width = '100%';
+        qrReader.style.height = '100%';
+        previewElement.parentElement.insertBefore(qrReader, previewElement);
+        previewElement.style.display = 'none';
+    }
+    
+    html5QrCode = new Html5Qrcode("qr-reader");
     
     html5QrCode.start(
         { facingMode: "environment" },
@@ -144,7 +155,10 @@ function startScanner() {
     ).then(() => {
         isScanning = true;
         document.getElementById('toggleCamera').textContent = 'Detener Camara';
+        document.getElementById('toggleCamera').classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+        document.getElementById('toggleCamera').classList.add('bg-red-600', 'hover:bg-red-700');
         document.getElementById('camera-placeholder').style.display = 'none';
+        document.getElementById('scanner-overlay').style.display = 'none';
     }).catch(err => {
         console.error('Error starting camera:', err);
         alert('No se pudo acceder a la camara. Verifica los permisos.');
@@ -152,11 +166,23 @@ function startScanner() {
 }
 
 function stopScanner() {
-    if (html5QrCode) {
+    if (html5QrCode && isScanning) {
         html5QrCode.stop().then(() => {
             isScanning = false;
             document.getElementById('toggleCamera').textContent = 'Iniciar Camara';
+            document.getElementById('toggleCamera').classList.remove('bg-red-600', 'hover:bg-red-700');
+            document.getElementById('toggleCamera').classList.add('bg-emerald-600', 'hover:bg-emerald-700');
             document.getElementById('camera-placeholder').style.display = 'flex';
+            document.getElementById('scanner-overlay').style.display = 'flex';
+            
+            // Remover el contenedor del escaner
+            const qrReader = document.getElementById('qr-reader');
+            if (qrReader) {
+                qrReader.remove();
+            }
+            document.getElementById('preview').style.display = 'block';
+        }).catch(err => {
+            console.error('Error stopping camera:', err);
         });
     }
 }
