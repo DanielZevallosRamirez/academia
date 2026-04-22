@@ -1,12 +1,21 @@
+@php use Illuminate\Support\Facades\Storage; @endphp
 @extends('layouts.app')
 
 @section('title', 'Mi Perfil')
 
 @section('header', 'Mi Perfil')
 
+@push('styles')
+<style>
+    #qrcode canvas {
+        border-radius: 8px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    {{-- Mensajes de exito --}}
+    {{-- Mensajes de exito/error --}}
     @if(session('success'))
         <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-3">
             <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,6 +23,52 @@
             </svg>
             <span>{{ session('success') }}</span>
         </div>
+    @endif
+
+    @if(session('error'))
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl flex items-center gap-3">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>{{ session('info') }}</span>
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl">
+            <div class="flex items-center gap-3 mb-3">
+                <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span class="font-medium">Modo desarrollo - Link de verificacion:</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="text" value="{{ session('warning') }}" readonly class="flex-1 text-xs bg-amber-100 p-2 rounded-lg font-mono border-0 focus:ring-2 focus:ring-amber-300" id="verificationLink">
+                <button onclick="copyLink()" class="px-3 py-2 bg-amber-200 hover:bg-amber-300 text-amber-800 rounded-lg text-xs font-medium transition-colors">
+                    Copiar
+                </button>
+                <a href="{{ session('warning') }}" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium transition-colors">
+                    Verificar Ahora
+                </a>
+            </div>
+        </div>
+        <script>
+            function copyLink() {
+                const input = document.getElementById('verificationLink');
+                input.select();
+                document.execCommand('copy');
+                alert('Link copiado al portapapeles');
+            }
+        </script>
     @endif
 
     {{-- Tarjeta Principal del Perfil --}}
@@ -77,7 +132,7 @@
                             @if($user->status === 'activo') bg-emerald-500
                             @elseif($user->status === 'inactivo') bg-slate-400
                             @else bg-amber-500 @endif"></span>
-                        {{ ucfirst($user->status) }}
+                        {{ ucfirst($user->status ?? 'activo') }}
                     </span>
                 </div>
             </div>
@@ -131,7 +186,26 @@
             <div class="space-y-4">
                 <div class="flex items-center justify-between py-3 border-b border-slate-100">
                     <span class="text-slate-500">Correo electronico</span>
-                    <span class="font-medium text-slate-800">{{ $user->email }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium text-slate-800">{{ $user->email }}</span>
+                        @if($user->email_verified_at)
+                            <span class="inline-flex items-center justify-center w-5 h-5 bg-emerald-100 rounded-full" title="Verificado">
+                                <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </span>
+                        @else
+                            <form action="{{ route('verification.send') }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors" title="Enviar enlace de verificacion">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                    </svg>
+                                    Verificar
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
                 <div class="flex items-center justify-between py-3 border-b border-slate-100">
                     <span class="text-slate-500">Telefono</span>
@@ -160,13 +234,16 @@
             </h3>
             <div class="flex flex-col items-center">
                 @if($user->qr_code)
-                    <div class="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-4">
-                        {{-- Aqui iria el QR generado --}}
-                        <div class="w-40 h-40 bg-slate-100 rounded-lg flex items-center justify-center">
-                            <span class="text-xs text-slate-500 text-center px-2">QR: {{ substr($user->qr_code, 0, 8) }}...</span>
-                        </div>
+                    <div class="bg-white p-4 rounded-xl border-2 border-slate-200 mb-4">
+                        <div id="qrcode" class="w-48 h-48 flex items-center justify-center"></div>
                     </div>
-                    <p class="text-sm text-slate-500 text-center">Este codigo QR es unico para ti. Usalo para registrar tu asistencia.</p>
+                    <p class="text-sm text-slate-500 text-center mb-3">Este codigo QR es unico para ti. Usalo para registrar tu asistencia.</p>
+                    <button onclick="downloadQR()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 bg-violet-100 hover:bg-violet-200 rounded-xl transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Descargar QR
+                    </button>
                 @else
                     <div class="text-center py-8">
                         <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
@@ -202,14 +279,14 @@
                 <div class="flex items-center justify-between py-3">
                     <span class="text-slate-500">Email verificado</span>
                     @if($user->email_verified_at)
-                        <span class="inline-flex items-center text-emerald-600">
+                        <span class="inline-flex items-center text-emerald-600 font-medium">
                             <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Verificado
+                            {{ $user->email_verified_at->format('d/m/Y') }}
                         </span>
                     @else
-                        <span class="inline-flex items-center text-amber-600">
+                        <span class="inline-flex items-center text-amber-600 font-medium">
                             <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                             </svg>
@@ -222,3 +299,37 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+{{-- QRCode.js library --}}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+    @if($user->qr_code)
+    // Generar el codigo QR
+    document.addEventListener('DOMContentLoaded', function() {
+        const qrContainer = document.getElementById('qrcode');
+        if (qrContainer) {
+            new QRCode(qrContainer, {
+                text: "{{ $user->qr_code }}",
+                width: 192,
+                height: 192,
+                colorDark: "#1e293b",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    });
+
+    // Funcion para descargar el QR
+    function downloadQR() {
+        const canvas = document.querySelector('#qrcode canvas');
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'mi-codigo-qr.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    }
+    @endif
+</script>
+@endpush
