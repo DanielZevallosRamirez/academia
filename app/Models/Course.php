@@ -19,13 +19,13 @@ class Course extends Model
         'slug',
         'description',
         'order',
-        'is_active',
+        'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            // status es string enum: activo, inactivo
         ];
     }
 
@@ -67,7 +67,7 @@ class Course extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', 'activo');
     }
 
     // ==================== HELPERS ====================
