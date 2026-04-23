@@ -82,7 +82,8 @@ class ProgramController extends Controller
             'image' => 'nullable|image|max:2048',
             'price' => 'required|numeric|min:0',
             'duration_months' => 'required|integer|min:1',
-            'is_active' => 'boolean',
+            'total_hours' => 'nullable|integer|min:1',
+            'status' => 'required|in:activo,inactivo',
         ]);
 
         $program->update($validated);
@@ -140,18 +141,19 @@ class ProgramController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'order' => 'nullable|integer',
-            'is_active' => 'boolean',
+            'status' => 'nullable|in:activo,inactivo',
         ]);
 
         $course->update($validated);
 
-        return back()->with('success', 'Curso actualizado exitosamente.');
+        return redirect()->route('programs.show', $course->program_id)->with('success', 'Curso actualizado exitosamente.');
     }
 
     public function destroyCourse(Course $course)
     {
+        $programId = $course->program_id;
         $course->delete();
-        return back()->with('success', 'Curso eliminado exitosamente.');
+        return redirect()->route('programs.show', $programId)->with('success', 'Curso eliminado exitosamente.');
     }
 
     // ==================== MÓDULOS ====================
@@ -181,18 +183,19 @@ class ProgramController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'order' => 'nullable|integer',
-            'is_active' => 'boolean',
         ]);
 
         $module->update($validated);
-
-        return back()->with('success', 'Módulo actualizado exitosamente.');
+        
+        $programId = $module->course->program_id;
+        return redirect()->route('programs.show', $programId)->with('success', 'Modulo actualizado exitosamente.');
     }
 
     public function destroyModule(Module $module)
     {
+        $programId = $module->course->program_id;
         $module->delete();
-        return back()->with('success', 'Módulo eliminado exitosamente.');
+        return redirect()->route('programs.show', $programId)->with('success', 'Modulo eliminado exitosamente.');
     }
 
     // ==================== CONTENIDOS ====================
@@ -236,12 +239,17 @@ class ProgramController extends Controller
             'description' => 'nullable|string',
             'type' => 'required|in:pdf,video,audio,link,text',
             'file' => 'nullable|file|max:102400',
-            'external_url' => 'nullable|url',
+            'url' => 'nullable|string',
             'content_text' => 'nullable|string',
-            'duration_minutes' => 'nullable|integer|min:1',
+            'duration_minutes' => 'nullable|integer|min:0',
             'order' => 'nullable|integer',
-            'is_active' => 'boolean',
         ]);
+
+        // Map url to external_url for the model
+        if (isset($validated['url'])) {
+            $validated['external_url'] = $validated['url'];
+            unset($validated['url']);
+        }
 
         $content->update($validated);
 
@@ -253,16 +261,19 @@ class ProgramController extends Controller
             $content->update(['file_path' => $path]);
         }
 
-        return back()->with('success', 'Contenido actualizado exitosamente.');
+        $programId = $content->module->course->program_id;
+        return redirect()->route('programs.show', $programId)->with('success', 'Contenido actualizado exitosamente.');
     }
 
     public function destroyContent(Content $content)
     {
+        $programId = $content->module->course->program_id;
+        
         if ($content->file_path) {
             Storage::disk('public')->delete($content->file_path);
         }
 
         $content->delete();
-        return back()->with('success', 'Contenido eliminado exitosamente.');
+        return redirect()->route('programs.show', $programId)->with('success', 'Contenido eliminado exitosamente.');
     }
 }

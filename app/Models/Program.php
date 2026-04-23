@@ -19,14 +19,15 @@ class Program extends Model
         'image',
         'price',
         'duration_months',
-        'is_active',
+        'total_hours',
+        'status',
     ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
-            'is_active' => 'boolean',
+            // status es string enum: activo, inactivo
         ];
     }
 
@@ -64,7 +65,7 @@ class Program extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('status', 'activo');
     }
 
     // ==================== HELPERS ====================

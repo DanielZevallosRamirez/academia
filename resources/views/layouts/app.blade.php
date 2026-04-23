@@ -25,6 +25,12 @@
         }
     </script>
 
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    
+    <!-- Alpine.js Collapse Plugin -->
+    <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -91,5 +97,17 @@
     </div>
 
     @stack('scripts')
+    
+    <!-- Initialize Lucide Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+        
+        // Re-initialize icons after Alpine updates DOM
+        document.addEventListener('alpine:initialized', function() {
+            lucide.createIcons();
+        });
+    </script>
 </body>
 </html>

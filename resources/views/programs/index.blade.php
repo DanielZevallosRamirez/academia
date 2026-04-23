@@ -61,8 +61,8 @@
                             <p class="text-sm text-gray-500 mt-1">{{ $program->duration_months }} meses</p>
                         </div>
                         <span class="px-2 py-1 text-xs font-medium rounded-full 
-                            {{ $program->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
-                            {{ $program->is_active ? 'Activo' : 'Inactivo' }}
+                            {{ $program->status === 'activo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
+                            {{ $program->status === 'activo' ? 'Activo' : 'Inactivo' }}
                         </span>
                     </div>
 

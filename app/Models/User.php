@@ -114,6 +114,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Cursos que imparte el profesor (alias para compatibilidad)
+     */
+    public function coursesAsTeacher(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'course_professor')
+            ->withTimestamps();
+    }
+
+    /**
      * Sesiones de clase del profesor
      */
     public function classSessions(): HasMany

@@ -105,6 +105,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('students/{student}/regenerate-qr', [StudentController::class, 'regenerateQr'])->name('students.regenerate-qr');
     
     Route::resource('programs', ProgramController::class);
+    
+    // Rutas anidadas para cursos, modulos y contenidos
+    Route::post('programs/{program}/courses', [ProgramController::class, 'storeCourse'])->name('programs.courses.store');
+    Route::put('courses/{course}', [ProgramController::class, 'updateCourse'])->name('courses.update');
+    Route::delete('courses/{course}', [ProgramController::class, 'destroyCourse'])->name('courses.destroy');
+    
+    Route::post('courses/{course}/modules', [ProgramController::class, 'storeModule'])->name('courses.modules.store');
+    Route::put('modules/{module}', [ProgramController::class, 'updateModule'])->name('modules.update');
+    Route::delete('modules/{module}', [ProgramController::class, 'destroyModule'])->name('modules.destroy');
+    
+    Route::post('modules/{module}/contents', [ProgramController::class, 'storeContent'])->name('modules.contents.store');
+    Route::put('contents/{content}', [ProgramController::class, 'updateContent'])->name('contents.update');
+    Route::delete('contents/{content}', [ProgramController::class, 'destroyContent'])->name('contents.destroy');
+    
     Route::resource('payments', PaymentController::class);
     Route::get('payments-pending', [PaymentController::class, 'pending'])->name('payments.pending');
     Route::get('payments/{payment}/process', [PaymentController::class, 'process'])->name('payments.process');
