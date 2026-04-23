@@ -20,6 +20,9 @@ class Program extends Model
         'price',
         'duration_months',
         'total_hours',
+        'start_date',
+        'end_date',
+        'schedule',
         'status',
     ];
 
@@ -27,7 +30,8 @@ class Program extends Model
     {
         return [
             'price' => 'decimal:2',
-            // status es string enum: activo, inactivo
+            'start_date' => 'date',
+            'end_date' => 'date',
         ];
     }
 

@@ -126,17 +126,35 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($student->id)],
             'phone' => 'nullable|string|max:20',
             'dni' => ['nullable', 'string', 'max:20', Rule::unique('users')->ignore($student->id)],
+            'birth_date' => 'nullable|date',
             'address' => 'nullable|string',
             'emergency_contact' => 'nullable|string|max:255',
             'emergency_phone' => 'nullable|string|max:20',
             'photo' => 'nullable|image|max:2048',
-            'is_active' => 'boolean',
+            'status' => 'required|in:activo,inactivo,suspendido',
+            // Enrollment fields
+            'program_id' => 'nullable|exists:programs,id',
+            'enrollment_start_date' => 'nullable|required_with:program_id|date',
+            'enrollment_end_date' => 'nullable|date|after_or_equal:enrollment_start_date',
         ]);
 
-        $student->update($validated);
+        // Update student data
+        $student->update([
+            'name' => $validated['name'],
+            'last_name' => $validated['last_name'] ?? null,
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'dni' => $validated['dni'] ?? null,
+            'birth_date' => $validated['birth_date'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'emergency_contact' => $validated['emergency_contact'] ?? null,
+            'emergency_phone' => $validated['emergency_phone'] ?? null,
+            'status' => $validated['status'],
+        ]);
 
         if ($request->hasFile('photo')) {
             // Eliminar foto anterior
@@ -145,6 +163,24 @@ class StudentController extends Controller
             }
             $path = $request->file('photo')->store('students', 'public');
             $student->update(['photo' => $path]);
+        }
+
+        // Create new enrollment if program is selected
+        if ($request->filled('program_id')) {
+            // Check if enrollment already exists for this program
+            $existingEnrollment = Enrollment::where('user_id', $student->id)
+                ->where('program_id', $validated['program_id'])
+                ->first();
+            
+            if (!$existingEnrollment) {
+                Enrollment::create([
+                    'user_id' => $student->id,
+                    'program_id' => $validated['program_id'],
+                    'start_date' => $validated['enrollment_start_date'],
+                    'end_date' => $validated['enrollment_end_date'] ?? null,
+                    'status' => 'activo',
+                ]);
+            }
         }
 
         return redirect()

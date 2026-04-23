@@ -149,14 +149,25 @@
             <!-- Add New Enrollment -->
             <div class="border-t border-gray-200 pt-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Agregar Nueva Inscripcion (Opcional)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Programa</label>
-                        <select name="program_id"
+                        <select name="program_id" id="program_id" onchange="loadProgramData(this.value)"
                                 class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
                             <option value="">Seleccionar programa</option>
                             @foreach($programs as $program)
-                                <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
+                                @php
+                                    $schedules = [];
+                                    if ($program->schedule) {
+                                        $decoded = json_decode($program->schedule, true);
+                                        $schedules = is_array($decoded) ? $decoded : [$program->schedule];
+                                    }
+                                @endphp
+                                <option value="{{ $program->id }}" 
+                                        data-start-date="{{ $program->start_date?->format('Y-m-d') }}"
+                                        data-end-date="{{ $program->end_date?->format('Y-m-d') }}"
+                                        data-schedule="{{ implode(' | ', $schedules) }}"
+                                        {{ old('program_id') == $program->id ? 'selected' : '' }}>
                                     {{ $program->name }} (S/ {{ number_format($program->price, 2) }})
                                 </option>
                             @endforeach
@@ -164,13 +175,19 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
-                        <input type="date" name="start_date" value="{{ old('start_date', date('Y-m-d')) }}"
+                        <input type="date" name="enrollment_start_date" id="enrollment_start_date" value="{{ old('enrollment_start_date') }}"
                                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Fecha fin</label>
-                        <input type="date" name="end_date" value="{{ old('end_date') }}"
+                        <input type="date" name="enrollment_end_date" id="enrollment_end_date" value="{{ old('enrollment_end_date') }}"
                                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Horario(s) del programa</label>
+                        <div id="program_schedule" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 min-h-[42px]">
+                            <span class="text-gray-400 italic">Seleccione un programa para ver el horario</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -229,6 +246,48 @@ function confirmDelete() {
         }
     });
 }
+
+function loadProgramData(programId) {
+    const select = document.getElementById('program_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    const startDateInput = document.getElementById('enrollment_start_date');
+    const endDateInput = document.getElementById('enrollment_end_date');
+    const scheduleDiv = document.getElementById('program_schedule');
+    
+    if (programId) {
+        const startDate = selectedOption.dataset.startDate;
+        const endDate = selectedOption.dataset.endDate;
+        const schedule = selectedOption.dataset.schedule;
+        
+        startDateInput.value = startDate || '';
+        endDateInput.value = endDate || '';
+        
+        if (schedule) {
+            const schedules = schedule.split(' | ');
+            if (schedules.length > 1) {
+                scheduleDiv.innerHTML = '<ul class="list-disc list-inside">' + 
+                    schedules.map(s => `<li>${s}</li>`).join('') + '</ul>';
+            } else {
+                scheduleDiv.innerHTML = `<span>${schedule}</span>`;
+            }
+        } else {
+            scheduleDiv.innerHTML = '<span class="text-gray-400 italic">No especificado</span>';
+        }
+    } else {
+        startDateInput.value = '';
+        endDateInput.value = '';
+        scheduleDiv.innerHTML = '<span class="text-gray-400 italic">Seleccione un programa para ver el horario</span>';
+    }
+}
+
+// Initialize on page load if program is pre-selected
+document.addEventListener('DOMContentLoaded', function() {
+    const programSelect = document.getElementById('program_id');
+    if (programSelect && programSelect.value) {
+        loadProgramData(programSelect.value);
+    }
+});
 </script>
 @endpush
 @endsection

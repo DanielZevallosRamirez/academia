@@ -105,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('students/{student}/regenerate-qr', [StudentController::class, 'regenerateQr'])->name('students.regenerate-qr');
     
     Route::resource('programs', ProgramController::class);
+    Route::get('programs/{program}/data', [ProgramController::class, 'getData'])->name('programs.data');
     
     // Rutas anidadas para cursos, modulos y contenidos
     Route::post('programs/{program}/courses', [ProgramController::class, 'storeCourse'])->name('programs.courses.store');

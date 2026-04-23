@@ -6,6 +6,8 @@ use App\Models\Course;
 use App\Models\Module;
 use App\Models\Content;
 use App\Models\Program;
+use App\Models\ClassSession;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -83,8 +85,17 @@ class ProgramController extends Controller
             'price' => 'required|numeric|min:0',
             'duration_months' => 'required|integer|min:1',
             'total_hours' => 'nullable|integer|min:1',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'schedules' => 'nullable|array',
+            'schedules.*' => 'nullable|string|max:255',
             'status' => 'required|in:activo,inactivo',
         ]);
+
+        // Process schedules - filter empty values and encode as JSON
+        $schedules = array_values(array_filter($request->input('schedules', []), fn($s) => !empty(trim($s))));
+        $validated['schedule'] = !empty($schedules) ? json_encode($schedules) : null;
+        unset($validated['schedules']);
 
         $program->update($validated);
 
@@ -114,6 +125,30 @@ class ProgramController extends Controller
             ->with('success', 'Programa eliminado exitosamente.');
     }
 
+    /**
+     * Get program data for AJAX requests
+     */
+    public function getData(Program $program)
+    {
+        // Parse schedule - can be JSON array or simple string
+        $schedules = [];
+        if ($program->schedule) {
+            $decoded = json_decode($program->schedule, true);
+            $schedules = is_array($decoded) ? $decoded : [$program->schedule];
+        }
+        
+        return response()->json([
+            'id' => $program->id,
+            'name' => $program->name,
+            'start_date' => $program->start_date?->format('Y-m-d'),
+            'end_date' => $program->end_date?->format('Y-m-d'),
+            'schedule' => implode(' | ', $schedules),
+            'schedules' => $schedules,
+            'price' => $program->price,
+            'duration_months' => $program->duration_months,
+        ]);
+    }
+
     // ==================== CURSOS ====================
 
     public function storeCourse(Request $request, Program $program)
@@ -125,14 +160,60 @@ class ProgramController extends Controller
 
         $maxOrder = $program->courses()->max('order') ?? 0;
 
-        $program->courses()->create([
+        $course = $program->courses()->create([
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
             'description' => $validated['description'],
             'order' => $maxOrder + 1,
         ]);
 
+        // Crear sesion de clase inicial automaticamente si el programa tiene fechas
+        if ($program->start_date) {
+            $this->createInitialSession($course, $program);
+        }
+
         return back()->with('success', 'Curso agregado exitosamente.');
+    }
+
+    /**
+     * Crear sesion de clase inicial para un curso nuevo
+     */
+    private function createInitialSession(Course $course, Program $program)
+    {
+        // Obtener un profesor activo (el primero disponible)
+        $professor = User::profesores()->active()->first();
+        
+        if (!$professor) {
+            return; // No hay profesores disponibles
+        }
+
+        // Parsear horario del programa
+        $scheduleTime = '09:00';
+        $endTime = '11:00';
+        
+        if ($program->schedule) {
+            $schedules = json_decode($program->schedule, true);
+            if (is_array($schedules) && !empty($schedules)) {
+                // Intentar extraer hora del primer horario (formato: "Lunes 10:00 - 12:15")
+                if (preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/', $schedules[0], $matches)) {
+                    $scheduleTime = $matches[1];
+                    $endTime = $matches[2];
+                }
+            }
+        }
+
+        // Crear la sesion inicial
+        ClassSession::create([
+            'course_id' => $course->id,
+            'professor_id' => $professor->id,
+            'title' => 'Clase 1 - Introduccion',
+            'description' => 'Sesion introductoria del curso ' . $course->name,
+            'session_date' => $program->start_date,
+            'start_time' => $scheduleTime,
+            'end_time' => $endTime,
+            'location' => 'Virtual',
+            'status' => 'programada',
+        ]);
     }
 
     public function updateCourse(Request $request, Course $course)

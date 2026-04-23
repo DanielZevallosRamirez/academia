@@ -37,7 +37,7 @@
                     {{ $program->status === 'activo' ? 'Activo' : 'Inactivo' }}
                 </span>
             </div>
-            <div class="mt-4 flex items-center gap-6 text-sm">
+            <div class="mt-4 flex flex-wrap items-center gap-6 text-sm">
                 <span class="flex items-center gap-2 text-gray-500">
                     <i data-lucide="clock" class="w-4 h-4"></i>
                     {{ $program->duration_months }} meses
@@ -54,6 +54,42 @@
                     S/ {{ number_format($program->price, 2) }}
                 </span>
             </div>
+
+            <!-- Schedule & Dates Info -->
+            @if($program->start_date || $program->schedule)
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex flex-wrap gap-6 text-sm">
+                    @if($program->start_date)
+                    <div class="flex items-center gap-2 text-gray-600">
+                        <i data-lucide="calendar" class="w-4 h-4 text-emerald-500"></i>
+                        <span class="font-medium">Inicio:</span>
+                        {{ $program->start_date->format('d/m/Y') }}
+                        @if($program->end_date)
+                            <span class="text-gray-400">-</span>
+                            <span class="font-medium">Fin:</span>
+                            {{ $program->end_date->format('d/m/Y') }}
+                        @endif
+                    </div>
+                    @endif
+                    @if($program->schedule)
+                    <div class="flex items-start gap-2 text-gray-600">
+                        <i data-lucide="clock-4" class="w-4 h-4 text-emerald-500 mt-0.5"></i>
+                        <div>
+                            <span class="font-medium">Horarios:</span>
+                            @php
+                                $schedules = is_array($program->schedule) ? $program->schedule : (json_decode($program->schedule, true) ?? [$program->schedule]);
+                            @endphp
+                            <ul class="list-disc list-inside ml-2">
+                                @foreach($schedules as $schedule)
+                                    <li>{{ $schedule }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 

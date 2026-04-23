@@ -83,7 +83,42 @@ class AttendanceController extends Controller
     {
         $session->load(['course.program', 'professor', 'attendances.student']);
 
+        // Sincronizar estudiantes inscritos que aun no tienen registro de asistencia
+        $this->syncEnrolledStudents($session);
+        
+        // Recargar las asistencias
+        $session->load('attendances.student');
+
         return view('attendance.session', compact('session'));
+    }
+
+    /**
+     * Sincroniza los estudiantes inscritos al programa con la sesion de clase
+     */
+    private function syncEnrolledStudents(ClassSession $session)
+    {
+        $course = $session->course;
+        
+        // Obtener estudiantes inscritos al programa del curso
+        $enrolledStudents = User::estudiantes()
+            ->whereHas('enrollments', function ($q) use ($course) {
+                $q->where('program_id', $course->program_id)
+                    ->where('status', 'activo');
+            })
+            ->get();
+
+        // Crear registros de asistencia para estudiantes que no lo tengan
+        foreach ($enrolledStudents as $student) {
+            Attendance::firstOrCreate(
+                [
+                    'class_session_id' => $session->id,
+                    'user_id' => $student->id,
+                ],
+                [
+                    'status' => 'ausente',
+                ]
+            );
+        }
     }
 
     public function scanner(ClassSession $session)
