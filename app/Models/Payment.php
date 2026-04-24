@@ -16,13 +16,17 @@ class Payment extends Model
         'user_id',
         'enrollment_id',
         'invoice_number',
+        'concept',
         'amount',
+        'amount_paid',
         'payment_method',
         'status',
         'due_date',
         'paid_date',
         'transaction_id',
         'receipt_path',
+        'payment_proof',
+        'installment_number',
         'notes',
     ];
 
@@ -30,6 +34,7 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
             'due_date' => 'date',
             'paid_date' => 'date',
         ];
@@ -119,6 +124,11 @@ class Payment extends Model
     public function getReceiptUrlAttribute(): ?string
     {
         return $this->receipt_path ? asset('storage/' . $this->receipt_path) : null;
+    }
+
+    public function getPaymentProofUrlAttribute(): ?string
+    {
+        return $this->payment_proof ? asset('storage/' . $this->payment_proof) : null;
     }
 
     public function isOverdue(): bool

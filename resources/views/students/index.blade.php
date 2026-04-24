@@ -88,8 +88,10 @@
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                    {{ $student->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' }}">
-                                    {{ $student->is_active ? 'Activo' : 'Inactivo' }}
+                                    {{ $student->status === 'activo' ? 'bg-green-100 text-green-700' : '' }}
+                                    {{ $student->status === 'inactivo' ? 'bg-gray-100 text-gray-700' : '' }}
+                                    {{ $student->status === 'suspendido' ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                                    {{ ucfirst($student->status) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4">

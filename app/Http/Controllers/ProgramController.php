@@ -16,7 +16,7 @@ class ProgramController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Program::withCount(['courses', 'enrollments']);
+        $query = Program::with('teacher')->withCount(['courses', 'enrollments']);
 
         if ($request->filled('search')) {
             $query->where('name', 'like', "%{$request->search}%");
@@ -33,7 +33,8 @@ class ProgramController extends Controller
 
     public function create()
     {
-        return view('programs.create');
+        $teachers = User::where('role', 'profesor')->orderBy('name')->get();
+        return view('programs.create', compact('teachers'));
     }
 
     public function store(Request $request)
@@ -44,14 +45,30 @@ class ProgramController extends Controller
             'image' => 'nullable|image|max:2048',
             'price' => 'required|numeric|min:0',
             'duration_months' => 'required|integer|min:1',
+            'total_hours' => 'nullable|integer|min:1',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'schedules' => 'nullable|array',
+            'schedules.*' => 'nullable|string',
+            'status' => 'required|in:activo,inactivo',
+            'teacher_id' => 'nullable|exists:users,id',
         ]);
 
+        // Process schedules
+        $schedules = array_filter($validated['schedules'] ?? []);
+        
         $program = Program::create([
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
-            'description' => $validated['description'],
+            'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
             'duration_months' => $validated['duration_months'],
+            'total_hours' => $validated['total_hours'] ?? null,
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'schedule' => !empty($schedules) ? json_encode($schedules) : null,
+            'status' => $validated['status'],
+            'teacher_id' => $validated['teacher_id'] ?? null,
         ]);
 
         if ($request->hasFile('image')) {
@@ -66,14 +83,15 @@ class ProgramController extends Controller
 
     public function show(Program $program)
     {
-        $program->load(['courses.modules.contents', 'enrollments.student']);
+        $program->load(['teacher', 'courses.modules.contents', 'enrollments.student']);
         
         return view('programs.show', compact('program'));
     }
 
     public function edit(Program $program)
     {
-        return view('programs.edit', compact('program'));
+        $teachers = User::where('role', 'profesor')->orderBy('name')->get();
+        return view('programs.edit', compact('program', 'teachers'));
     }
 
     public function update(Request $request, Program $program)
@@ -90,6 +108,7 @@ class ProgramController extends Controller
             'schedules' => 'nullable|array',
             'schedules.*' => 'nullable|string|max:255',
             'status' => 'required|in:activo,inactivo',
+            'teacher_id' => 'nullable|exists:users,id',
         ]);
 
         // Process schedules - filter empty values and encode as JSON

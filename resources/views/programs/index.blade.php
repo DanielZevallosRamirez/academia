@@ -70,6 +70,15 @@
                         <p class="text-sm text-gray-600 mt-2 line-clamp-2">{{ $program->description }}</p>
                     @endif
 
+                    @if($program->teacher)
+                    <div class="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                        <div class="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-3 h-3 text-indigo-600"></i>
+                        </div>
+                        <span class="font-medium">Profesor:</span> {{ $program->teacher->name }}
+                    </div>
+                    @endif
+
                     <!-- Stats -->
                     <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
                         <div class="flex items-center gap-4 text-gray-500">

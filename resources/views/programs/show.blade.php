@@ -53,6 +53,12 @@
                 <span class="flex items-center gap-2 font-semibold text-emerald-600">
                     S/ {{ number_format($program->price, 2) }}
                 </span>
+                @if($program->teacher)
+                <span class="flex items-center gap-2 text-gray-600">
+                    <i data-lucide="user-check" class="w-4 h-4 text-indigo-500"></i>
+                    <span class="font-medium">Profesor:</span> {{ $program->teacher->name }}
+                </span>
+                @endif
             </div>
 
             <!-- Schedule & Dates Info -->

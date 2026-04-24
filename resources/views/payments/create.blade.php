@@ -140,8 +140,10 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Adjuntar comprobante (opcional)</label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
-                        <input type="file" name="receipt_file" id="receipt_file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                    
+                    <!-- Upload Area -->
+                    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors cursor-pointer">
+                        <input type="file" name="receipt_file" id="receipt_file" accept=".pdf,.jpg,.jpeg,.png" class="hidden" onchange="handleFileSelect(this)">
                         <label for="receipt_file" class="cursor-pointer">
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
@@ -150,6 +152,51 @@
                             <p class="mt-1 text-xs text-gray-500">PDF, JPG o PNG hasta 5MB</p>
                         </label>
                     </div>
+                    
+                    <!-- Preview Area (hidden by default) -->
+                    <div id="preview-area" class="hidden mt-3">
+                        <div class="flex items-center gap-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <!-- Image Preview (clickable) -->
+                            <div id="image-preview-container" class="hidden flex-shrink-0 cursor-pointer group" onclick="openImageModal()">
+                                <div class="relative">
+                                    <img id="image-preview" src="" alt="Preview" class="w-20 h-20 object-cover rounded-lg border border-emerald-300 group-hover:opacity-75 transition-opacity">
+                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg class="w-6 h-6 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-emerald-600 text-center mt-1">Click para ver</p>
+                            </div>
+                            <!-- PDF Icon -->
+                            <div id="pdf-preview-container" class="hidden flex-shrink-0">
+                                <div class="w-20 h-20 bg-red-100 rounded-lg border border-red-300 flex items-center justify-center">
+                                    <svg class="w-10 h-10 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                                        <path d="M14 2v6h6M9 15h6M9 11h6"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <!-- File Info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span class="text-sm font-medium text-emerald-700">Archivo cargado correctamente</span>
+                                </div>
+                                <p id="file-name" class="mt-1 text-sm text-gray-600 truncate"></p>
+                                <p id="file-size" class="text-xs text-gray-500"></p>
+                            </div>
+                            <!-- Remove Button -->
+                            <button type="button" onclick="removeFile()" class="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
                     @error('receipt_file')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -188,4 +235,165 @@
         </div>
     </form>
 </div>
+<!-- Image Preview Modal -->
+<div id="image-modal" class="fixed inset-0 z-50 hidden overflow-auto bg-black/80 backdrop-blur-sm">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <!-- Close button -->
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        
+        <!-- Image container -->
+        <div class="relative max-w-4xl w-full">
+            <img id="modal-image" src="" alt="Vista previa del comprobante" class="max-h-[85vh] w-auto mx-auto rounded-lg shadow-2xl">
+            <p id="modal-filename" class="text-white/80 text-center mt-4 text-sm"></p>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function openImageModal() {
+    const preview = document.getElementById('image-preview');
+    const modal = document.getElementById('image-modal');
+    const modalImage = document.getElementById('modal-image');
+    const modalFilename = document.getElementById('modal-filename');
+    const fileName = document.getElementById('file-name');
+    
+    modalImage.src = preview.src;
+    modalFilename.textContent = fileName.textContent;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('image-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+
+// Close modal when clicking outside the image
+document.getElementById('image-modal')?.addEventListener('click', function(e) {
+    if (e.target === this || e.target.classList.contains('min-h-screen')) {
+        closeImageModal();
+    }
+});
+
+function handleFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const uploadArea = document.getElementById('upload-area');
+    const previewArea = document.getElementById('preview-area');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const imagePreview = document.getElementById('image-preview');
+    const imageContainer = document.getElementById('image-preview-container');
+    const pdfContainer = document.getElementById('pdf-preview-container');
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo es muy grande. Maximo 5MB permitido.');
+        input.value = '';
+        return;
+    }
+    
+    // Show preview area, hide upload area
+    uploadArea.classList.add('hidden');
+    previewArea.classList.remove('hidden');
+    
+    // Set file info
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    
+    // Show appropriate preview based on file type
+    if (file.type.startsWith('image/')) {
+        imageContainer.classList.remove('hidden');
+        pdfContainer.classList.add('hidden');
+        
+        // Create image preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // PDF file
+        imageContainer.classList.add('hidden');
+        pdfContainer.classList.remove('hidden');
+    }
+}
+
+function removeFile() {
+    const input = document.getElementById('receipt_file');
+    const uploadArea = document.getElementById('upload-area');
+    const previewArea = document.getElementById('preview-area');
+    const imagePreview = document.getElementById('image-preview');
+    
+    // Clear input
+    input.value = '';
+    
+    // Reset preview
+    imagePreview.src = '';
+    
+    // Show upload area, hide preview
+    uploadArea.classList.remove('hidden');
+    previewArea.classList.add('hidden');
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Drag and drop support
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('upload-area');
+    const input = document.getElementById('receipt_file');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.classList.add('border-indigo-500', 'bg-indigo-50');
+        }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.classList.remove('border-indigo-500', 'bg-indigo-50');
+        }, false);
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            input.files = files;
+            handleFileSelect(input);
+        }
+    }, false);
+});
+</script>
+@endpush
 @endsection

@@ -44,11 +44,36 @@ class PaymentController extends Controller
 
         $payments = $query->latest()->paginate(15);
 
+        // Calculate stats - simpler approach
+        $allPayments = Payment::all();
+        
+        $totalPendiente = $allPayments->whereIn('status', ['pendiente', 'parcial', 'vencido'])
+            ->sum(function($p) {
+                return $p->amount - ($p->amount_paid ?? 0);
+            });
+        
+        $totalPagadoMes = $allPayments
+            ->filter(function($p) {
+                return $p->created_at->month == now()->month 
+                    && $p->created_at->year == now()->year
+                    && in_array($p->status, ['pagado', 'parcial']);
+            })
+            ->sum('amount_paid');
+        
+        $cantidadVencidos = $allPayments
+            ->where('status', 'pendiente')
+            ->filter(function($p) {
+                return $p->due_date && $p->due_date < today();
+            })
+            ->count();
+        
+        $cantidadPendientes = $allPayments->whereIn('status', ['pendiente', 'parcial'])->count();
+        
         $stats = [
-            'total_pendiente' => Payment::pending()->sum('amount'),
-            'total_pagado_mes' => Payment::paid()->thisMonth()->sum('amount'),
-            'cantidad_vencidos' => Payment::overdue()->count(),
-            'cantidad_pendientes' => Payment::pending()->count(),
+            'total_pendiente' => $totalPendiente,
+            'total_pagado_mes' => $totalPagadoMes,
+            'cantidad_vencidos' => $cantidadVencidos,
+            'cantidad_pendientes' => $cantidadPendientes,
         ];
 
         return view('payments.index', compact('payments', 'stats'));
@@ -72,13 +97,39 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
             'enrollment_id' => 'required|exists:enrollments,id',
             'amount' => 'required|numeric|min:0.01',
             'due_date' => 'required|date',
-            'payment_method' => 'nullable|in:efectivo,transferencia,tarjeta,online',
+            'payment_method' => 'nullable|in:efectivo,transferencia,tarjeta,online,yape',
+            'concept' => 'nullable|string',
+            'installment_number' => 'nullable|integer|min:1',
+            'amount_paid' => 'nullable|numeric|min:0',
+            'status' => 'nullable|in:pendiente,pagado,parcial',
+            'transaction_id' => 'nullable|string',
             'notes' => 'nullable|string',
+            'receipt_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
+
+        // Get user_id from enrollment
+        $enrollment = Enrollment::findOrFail($validated['enrollment_id']);
+        $validated['user_id'] = $enrollment->user_id;
+
+        // Handle file upload
+        if ($request->hasFile('receipt_file')) {
+            $path = $request->file('receipt_file')->store('payment-proofs', 'public');
+            $validated['payment_proof'] = $path;
+        }
+
+        // Determine status based on amount paid
+        $amountPaid = $validated['amount_paid'] ?? 0;
+        if ($amountPaid >= $validated['amount']) {
+            $validated['status'] = 'pagado';
+            $validated['paid_date'] = now();
+        } elseif ($amountPaid > 0) {
+            $validated['status'] = 'parcial';
+        } else {
+            $validated['status'] = $validated['status'] ?? 'pendiente';
+        }
 
         $payment = Payment::create($validated);
 
@@ -103,13 +154,26 @@ class PaymentController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
+            'amount_paid' => 'nullable|numeric|min:0',
             'due_date' => 'required|date',
-            'status' => 'required|in:pendiente,pagado,vencido,cancelado',
-            'payment_method' => 'nullable|in:efectivo,transferencia,tarjeta,online',
+            'status' => 'required|in:pendiente,parcial,pagado,vencido,cancelado',
+            'payment_method' => 'nullable|in:efectivo,transferencia,tarjeta,online,yape,plin',
             'paid_date' => 'nullable|date',
             'transaction_id' => 'nullable|string',
+            'concept' => 'nullable|string',
+            'installment_number' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
+            'payment_proof' => 'nullable|image|max:5120',
         ]);
+
+        // Handle payment proof upload
+        if ($request->hasFile('payment_proof')) {
+            // Delete old proof if exists
+            if ($payment->payment_proof) {
+                Storage::disk('public')->delete($payment->payment_proof);
+            }
+            $validated['payment_proof'] = $request->file('payment_proof')->store('payment-proofs', 'public');
+        }
 
         $payment->update($validated);
 
@@ -135,20 +199,50 @@ class PaymentController extends Controller
     public function markAsPaid(Request $request, Payment $payment)
     {
         $validated = $request->validate([
-            'payment_method' => 'required|in:efectivo,transferencia,tarjeta,online',
+            'payment_method' => 'required|in:efectivo,transferencia,tarjeta,online,yape',
             'transaction_id' => 'nullable|string',
             'notes' => 'nullable|string',
+            'payment_proof' => 'nullable|image|max:5120',
         ]);
 
-        $payment->update([
+        $updateData = [
             'status' => 'pagado',
             'paid_date' => today(),
             'payment_method' => $validated['payment_method'],
             'transaction_id' => $validated['transaction_id'],
             'notes' => $validated['notes'],
-        ]);
+        ];
+
+        // Handle payment proof upload
+        if ($request->hasFile('payment_proof')) {
+            // Delete old proof if exists
+            if ($payment->payment_proof) {
+                Storage::disk('public')->delete($payment->payment_proof);
+            }
+            $path = $request->file('payment_proof')->store('payment-proofs', 'public');
+            $updateData['payment_proof'] = $path;
+        }
+
+        $payment->update($updateData);
 
         return back()->with('success', 'Pago marcado como pagado.');
+    }
+
+    public function uploadProof(Request $request, Payment $payment)
+    {
+        $request->validate([
+            'payment_proof' => 'required|image|max:5120',
+        ]);
+
+        // Delete old proof if exists
+        if ($payment->payment_proof) {
+            Storage::disk('public')->delete($payment->payment_proof);
+        }
+
+        $path = $request->file('payment_proof')->store('payment-proofs', 'public');
+        $payment->update(['payment_proof' => $path]);
+
+        return back()->with('success', 'Comprobante subido exitosamente.');
     }
 
     public function uploadDocument(Request $request, Payment $payment)

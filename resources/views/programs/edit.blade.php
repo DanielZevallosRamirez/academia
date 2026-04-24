@@ -174,6 +174,32 @@
             </div>
         </div>
 
+        <!-- Teacher Assignment -->
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 pb-2 border-b">Asignacion de Profesor</h3>
+            
+            <div>
+                <label for="teacher_id" class="block text-sm font-medium text-gray-700 mb-1">
+                    Profesor Responsable
+                </label>
+                <select name="teacher_id" id="teacher_id"
+                        class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 @error('teacher_id') border-red-500 @enderror">
+                    <option value="">Seleccionar profesor...</option>
+                    @foreach($teachers as $teacher)
+                        <option value="{{ $teacher->id }}" @selected(old('teacher_id', $program->teacher_id) == $teacher->id)>
+                            {{ $teacher->name }} - {{ $teacher->email }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('teacher_id')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+                @if($teachers->isEmpty())
+                    <p class="text-amber-600 text-sm mt-1">No hay profesores registrados. <a href="{{ route('users.create') }}" class="underline">Crear profesor</a></p>
+                @endif
+            </div>
+        </div>
+
         <!-- Status & Image -->
         <div class="space-y-4">
             <h3 class="text-lg font-semibold text-gray-900 pb-2 border-b">Estado e Imagen</h3>

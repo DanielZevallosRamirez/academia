@@ -12,9 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('programs', function (Blueprint $table) {
-            $table->date('start_date')->nullable();
-            $table->date('end_date')->nullable();
-            $table->string('schedule', 255)->nullable();
+            if (!Schema::hasColumn('programs', 'start_date')) {
+                $table->date('start_date')->nullable();
+            }
+            if (!Schema::hasColumn('programs', 'end_date')) {
+                $table->date('end_date')->nullable();
+            }
+            if (!Schema::hasColumn('programs', 'schedule')) {
+                $table->string('schedule')->nullable(); // JSON array of schedules
+            }
+            if (!Schema::hasColumn('programs', 'total_hours')) {
+                $table->integer('total_hours')->nullable();
+            }
+            if (!Schema::hasColumn('programs', 'status')) {
+                $table->string('status')->default('activo');
+            }
         });
     }
 
@@ -24,7 +36,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('programs', function (Blueprint $table) {
-            //
+            $table->dropColumn(['start_date', 'end_date', 'schedule', 'total_hours', 'status']);
         });
     }
 };

@@ -189,6 +189,25 @@
                             <span class="text-gray-400 italic">Seleccione un programa para ver el horario</span>
                         </div>
                     </div>
+                    
+                    <!-- Payment Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Pago</label>
+                        <select name="payment_type" id="payment_type" onchange="toggleInstallments(this.value)"
+                                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="contado" @selected(old('payment_type') == 'contado')>Al Contado</option>
+                            <option value="cuotas" @selected(old('payment_type') == 'cuotas')>En Cuotas</option>
+                        </select>
+                    </div>
+                    <div id="installments_container" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Numero de Cuotas</label>
+                        <select name="num_installments" id="num_installments"
+                                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            @for($i = 2; $i <= 12; $i++)
+                                <option value="{{ $i }}" @selected(old('num_installments') == $i)>{{ $i }} cuotas</option>
+                            @endfor
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -281,11 +300,26 @@ function loadProgramData(programId) {
     }
 }
 
+function toggleInstallments(value) {
+    const container = document.getElementById('installments_container');
+    if (value === 'cuotas') {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
 // Initialize on page load if program is pre-selected
 document.addEventListener('DOMContentLoaded', function() {
     const programSelect = document.getElementById('program_id');
     if (programSelect && programSelect.value) {
         loadProgramData(programSelect.value);
+    }
+    
+    // Initialize payment type toggle
+    const paymentType = document.getElementById('payment_type');
+    if (paymentType) {
+        toggleInstallments(paymentType.value);
     }
 });
 </script>

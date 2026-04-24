@@ -19,6 +19,8 @@ class Enrollment extends Model
         'end_date',
         'status',
         'notes',
+        'payment_type',
+        'num_installments',
     ];
 
     protected function casts(): array

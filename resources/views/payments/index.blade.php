@@ -104,11 +104,34 @@
                     <option value="efectivo" {{ request('method') == 'efectivo' ? 'selected' : '' }}>Efectivo</option>
                     <option value="transferencia" {{ request('method') == 'transferencia' ? 'selected' : '' }}>Transferencia</option>
                     <option value="tarjeta" {{ request('method') == 'tarjeta' ? 'selected' : '' }}>Tarjeta</option>
-                    <option value="yape" {{ request('method') == 'yape' ? 'selected' : '' }}>Yape/Plin</option>
+                    <option value="yape" {{ request('method') == 'yape' ? 'selected' : '' }}>Yape</option>
+                    <option value="plin" {{ request('method') == 'plin' ? 'selected' : '' }}>Plin</option>
+                </select>
+            </div>
+            <div class="flex flex-wrap gap-3 items-center">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm text-gray-600 whitespace-nowrap">Desde:</label>
+                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm text-gray-600 whitespace-nowrap">Hasta:</label>
+                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <select name="period" onchange="applyPeriodFilter(this.value)" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">Periodo</option>
+                    <option value="today" {{ request('period') == 'today' ? 'selected' : '' }}>Hoy</option>
+                    <option value="week" {{ request('period') == 'week' ? 'selected' : '' }}>Esta semana</option>
+                    <option value="month" {{ request('period') == 'month' ? 'selected' : '' }}>Este mes</option>
+                    <option value="year" {{ request('period') == 'year' ? 'selected' : '' }}>Este ano</option>
                 </select>
                 <button type="submit" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
                     Filtrar
                 </button>
+                @if(request()->hasAny(['search', 'status', 'method', 'date_from', 'date_to', 'period']))
+                <a href="{{ route('payments.index') }}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                    Limpiar
+                </a>
+                @endif
             </div>
         </form>
     </div>
@@ -192,6 +215,19 @@
                                     </svg>
                                 </a>
                                 @endif
+                                @if($payment->payment_proof)
+                                <a href="{{ $payment->payment_proof_url }}" target="_blank" class="text-blue-600 hover:text-blue-900" title="Ver comprobante">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </a>
+                                @else
+                                <button type="button" onclick="openUploadModal({{ $payment->id }})" class="text-amber-600 hover:text-amber-900" title="Subir comprobante">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                </button>
+                                @endif
                                 <a href="{{ route('payments.show', $payment) }}" class="text-indigo-600 hover:text-indigo-900" title="Ver detalles">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -227,4 +263,86 @@
         @endif
     </div>
 </div>
+<!-- Upload Modal -->
+<div id="uploadModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeUploadModal()"></div>
+        
+        <div class="relative bg-white rounded-lg shadow-xl transform transition-all sm:max-w-lg sm:w-full p-6">
+            <div class="text-left">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Subir Comprobante de Pago</h3>
+                <form id="uploadForm" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Foto del comprobante</label>
+                        <input type="file" name="payment_proof" accept="image/*" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <p class="mt-1 text-xs text-gray-500">Formatos: JPG, PNG. Maximo 5MB</p>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeUploadModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                            Subir Comprobante
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function openUploadModal(paymentId) {
+    const modal = document.getElementById('uploadModal');
+    const form = document.getElementById('uploadForm');
+    form.action = `/payments/${paymentId}/upload-proof`;
+    modal.classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    const modal = document.getElementById('uploadModal');
+    modal.classList.add('hidden');
+}
+
+function applyPeriodFilter(period) {
+    const dateFrom = document.querySelector('input[name="date_from"]');
+    const dateTo = document.querySelector('input[name="date_to"]');
+    const today = new Date();
+    
+    let fromDate, toDate;
+    
+    switch(period) {
+        case 'today':
+            fromDate = toDate = formatDate(today);
+            break;
+        case 'week':
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            fromDate = formatDate(startOfWeek);
+            toDate = formatDate(today);
+            break;
+        case 'month':
+            fromDate = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+            toDate = formatDate(today);
+            break;
+        case 'year':
+            fromDate = formatDate(new Date(today.getFullYear(), 0, 1));
+            toDate = formatDate(today);
+            break;
+        default:
+            return;
+    }
+    
+    dateFrom.value = fromDate;
+    dateTo.value = toDate;
+}
+
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+</script>
+@endpush
 @endsection

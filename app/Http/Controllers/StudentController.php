@@ -140,6 +140,8 @@ class StudentController extends Controller
             'program_id' => 'nullable|exists:programs,id',
             'enrollment_start_date' => 'nullable|required_with:program_id|date',
             'enrollment_end_date' => 'nullable|date|after_or_equal:enrollment_start_date',
+            'payment_type' => 'nullable|in:contado,cuotas',
+            'num_installments' => 'nullable|integer|min:2|max:12',
         ]);
 
         // Update student data
@@ -173,19 +175,68 @@ class StudentController extends Controller
                 ->first();
             
             if (!$existingEnrollment) {
-                Enrollment::create([
+                $paymentType = $request->input('payment_type', 'contado');
+                $numInstallments = $paymentType === 'cuotas' ? $request->input('num_installments', 2) : 1;
+                
+                $enrollment = Enrollment::create([
                     'user_id' => $student->id,
                     'program_id' => $validated['program_id'],
                     'start_date' => $validated['enrollment_start_date'],
                     'end_date' => $validated['enrollment_end_date'] ?? null,
                     'status' => 'activo',
+                    'payment_type' => $paymentType,
+                    'num_installments' => $numInstallments,
                 ]);
+                
+                // Create payment records based on payment type
+                $program = Program::find($validated['program_id']);
+                $this->createPaymentRecords($enrollment, $program, $paymentType, $numInstallments);
             }
         }
 
         return redirect()
             ->route('students.show', $student)
             ->with('success', 'Estudiante actualizado exitosamente.');
+    }
+
+    /**
+     * Create payment records based on payment type
+     */
+    private function createPaymentRecords(Enrollment $enrollment, Program $program, string $paymentType, int $numInstallments)
+    {
+        $totalAmount = $program->price;
+        
+        if ($paymentType === 'contado') {
+            // Single payment
+            Payment::create([
+                'user_id' => $enrollment->user_id,
+                'enrollment_id' => $enrollment->id,
+                'amount' => $totalAmount,
+                'status' => 'pendiente',
+                'due_date' => $enrollment->start_date ?? now(),
+                'installment_number' => 1,
+            ]);
+        } else {
+            // Multiple installments
+            $installmentAmount = round($totalAmount / $numInstallments, 2);
+            $startDate = $enrollment->start_date ?? now();
+            
+            for ($i = 1; $i <= $numInstallments; $i++) {
+                // Adjust last installment to account for rounding
+                $amount = ($i === $numInstallments) 
+                    ? $totalAmount - ($installmentAmount * ($numInstallments - 1))
+                    : $installmentAmount;
+                
+                Payment::create([
+                    'user_id' => $enrollment->user_id,
+                    'enrollment_id' => $enrollment->id,
+                    'amount' => $amount,
+                    'status' => 'pendiente',
+                    'due_date' => $startDate->copy()->addMonths($i - 1),
+                    'installment_number' => $i,
+                ]);
+            }
+        }
     }
 
     public function destroy(User $student)
