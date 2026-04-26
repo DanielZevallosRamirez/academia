@@ -65,13 +65,18 @@ class DashboardController extends Controller
 
     private function profesorDashboard(User $user)
     {
-        $mis_cursos = $user->coursesAsTeacher()->with('program')->get();
+        // Get programs assigned to this teacher
+        $mis_programas = Program::where('teacher_id', $user->id)
+            ->with(['courses', 'enrollments.student'])
+            ->get();
+        
+        // Get courses from those programs
+        $mis_cursos = $mis_programas->pluck('courses')->flatten();
         
         $sesiones_hoy = [];
         $proximas_sesiones = [];
-        $total_estudiantes = 0;
 
-        if (class_exists('App\Models\ClassSession')) {
+        if (class_exists('App\Models\ClassSession') && $mis_cursos->isNotEmpty()) {
             $sesiones_hoy = ClassSession::whereIn('course_id', $mis_cursos->pluck('id'))
                 ->whereDate('session_date', Carbon::today())
                 ->with('course')
@@ -84,15 +89,27 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        $total_estudiantes = Enrollment::whereHas('program', function ($query) use ($mis_cursos) {
-            $query->whereIn('id', $mis_cursos->pluck('program_id'));
-        })->where('status', 'activo')->count();
+        // Count students enrolled in teacher's programs
+        $total_estudiantes = Enrollment::whereIn('program_id', $mis_programas->pluck('id'))
+            ->where('status', 'activo')
+            ->count();
+        
+        // Get recent students with their enrollments
+        $mis_estudiantes = User::whereHas('enrollments', function($query) use ($mis_programas) {
+            $query->whereIn('program_id', $mis_programas->pluck('id'))
+                  ->where('status', 'activo');
+        })->with(['enrollments' => function($query) use ($mis_programas) {
+            $query->whereIn('program_id', $mis_programas->pluck('id'))
+                  ->with('program');
+        }])->take(10)->get();
 
         return view('dashboard.profesor', compact(
+            'mis_programas',
             'mis_cursos',
             'sesiones_hoy',
             'proximas_sesiones',
-            'total_estudiantes'
+            'total_estudiantes',
+            'mis_estudiantes'
         ));
     }
 
@@ -104,12 +121,12 @@ class DashboardController extends Controller
             ->get();
 
         $mis_pagos = Payment::whereHas('enrollment', function ($query) use ($user) {
-            $query->where('student_id', $user->id);
+            $query->where('user_id', $user->id);
         })->orderBy('due_date')->get();
 
         $pago_pendiente = $mis_pagos->where('status', 'pendiente')->first();
 
-        $mi_asistencia = Attendance::where('student_id', $user->id)
+        $mi_asistencia = Attendance::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get();

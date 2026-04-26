@@ -72,6 +72,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
         Route::get('attendance/create-session', [AttendanceController::class, 'createSession'])->name('attendance.create-session');
         Route::post('attendance/sessions', [AttendanceController::class, 'storeSession'])->name('attendance.store-session');
+        Route::get('attendance/sessions/{session}/edit', [AttendanceController::class, 'editSession'])->name('attendance.edit-session');
+        Route::put('attendance/sessions/{session}', [AttendanceController::class, 'updateSession'])->name('attendance.update-session');
         Route::get('attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
     });
 
@@ -131,6 +133,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('attendance/create-session', [AttendanceController::class, 'createSession'])->name('attendance.create-session');
     Route::post('attendance/sessions', [AttendanceController::class, 'storeSession'])->name('attendance.store-session');
+    Route::get('attendance/sessions/{session}/edit', [AttendanceController::class, 'editSession'])->name('attendance.edit-session');
+    Route::put('attendance/sessions/{session}', [AttendanceController::class, 'updateSession'])->name('attendance.update-session');
     Route::get('attendance/session/{session}', [AttendanceController::class, 'session'])->name('attendance.session');
     Route::get('attendance/scanner/{session}', [AttendanceController::class, 'scanner'])->name('attendance.scanner');
     Route::post('attendance/scan/{session}', [AttendanceController::class, 'scanQr'])->name('attendance.scan');

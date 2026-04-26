@@ -206,6 +206,35 @@ class AttendanceController extends Controller
         return back()->with('success', 'Asistencia actualizada exitosamente.');
     }
 
+    public function editSession(ClassSession $session)
+    {
+        $courses = Course::with('program')->active()->get();
+        $professors = User::profesores()->active()->get();
+
+        return view('attendance.edit-session', compact('session', 'courses', 'professors'));
+    }
+
+    public function updateSession(Request $request, ClassSession $session)
+    {
+        $validated = $request->validate([
+            'course_id' => 'required|exists:courses,id',
+            'professor_id' => 'required|exists:users,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'session_date' => 'required|date',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
+            'location' => 'nullable|string|max:255',
+            'status' => 'required|in:programada,en_curso,finalizada,cancelada',
+        ]);
+
+        $session->update($validated);
+
+        return redirect()
+            ->route('attendance.index')
+            ->with('success', 'Sesion actualizada exitosamente.');
+    }
+
     public function startSession(ClassSession $session)
     {
         $session->update(['status' => 'en_curso']);
