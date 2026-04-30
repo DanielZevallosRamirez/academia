@@ -27,8 +27,21 @@ class Payment extends Model
         'receipt_path',
         'payment_proof',
         'installment_number',
+        'total_installments',
         'notes',
     ];
+
+    /**
+     * Get installment label (e.g., "Cuota 1/3")
+     */
+    public function getInstallmentLabelAttribute(): ?string
+    {
+        if ($this->installment_number) {
+            $total = $this->total_installments ?? 1;
+            return "Cuota {$this->installment_number}/{$total}";
+        }
+        return null;
+    }
 
     protected function casts(): array
     {
@@ -48,6 +61,22 @@ class Payment extends Model
             if (empty($payment->invoice_number)) {
                 $payment->invoice_number = 'INV-' . strtoupper(Str::random(8));
             }
+        });
+
+        // Auto-update status based on amount_paid
+        static::saving(function ($payment) {
+            $amountPaid = $payment->amount_paid ?? 0;
+            $amount = $payment->amount ?? 0;
+
+            if ($amount > 0 && $amountPaid >= $amount) {
+                $payment->status = 'pagado';
+                if (!$payment->paid_at && !$payment->paid_date) {
+                    $payment->paid_date = now();
+                }
+            } elseif ($amountPaid > 0 && $amountPaid < $amount) {
+                $payment->status = 'parcial';
+            }
+            // Keep existing status if amount_paid is 0 (pendiente, vencido, etc.)
         });
     }
 
@@ -80,6 +109,16 @@ class Payment extends Model
         return $query->where('status', 'pendiente');
     }
 
+    public function scopePartial($query)
+    {
+        return $query->where('status', 'parcial');
+    }
+
+    public function scopeUnpaid($query)
+    {
+        return $query->whereIn('status', ['pendiente', 'parcial']);
+    }
+
     public function scopePaid($query)
     {
         return $query->where('status', 'pagado');
@@ -87,7 +126,7 @@ class Payment extends Model
 
     public function scopeOverdue($query)
     {
-        return $query->where('status', 'pendiente')
+        return $query->whereIn('status', ['pendiente', 'parcial'])
             ->where('due_date', '<', today());
     }
 
@@ -99,10 +138,102 @@ class Payment extends Model
 
     // ==================== HELPERS ====================
 
+    /**
+     * Get the real/calculated status based on amounts
+     * For display purposes - keeps individual payment status for history
+     * Only the LAST installment of a complete plan shows as "pagado"
+     */
+    public function getRealStatusAttribute(): string
+    {
+        $amountPaid = $this->amount_paid ?? 0;
+        $amount = $this->amount ?? 0;
+
+        // If full amount paid, it's pagado
+        if ($amount > 0 && $amountPaid >= $amount) {
+            return 'pagado';
+        }
+        
+        // Check if this is the LAST installment of a completed plan
+        if ($this->isLastInstallmentAndPlanComplete()) {
+            return 'pagado';
+        }
+        
+        // Partial payment
+        if ($amountPaid > 0 && $amountPaid < $amount) {
+            return 'parcial';
+        }
+        
+        // Return stored status for other cases (pendiente, vencido, cancelado)
+        return $this->status;
+    }
+
+    /**
+     * Check if this is the last installment AND the plan is complete
+     */
+    public function isLastInstallmentAndPlanComplete(): bool
+    {
+        if (!$this->installment_number || !$this->total_installments || $this->total_installments <= 1) {
+            return false;
+        }
+
+        // Must be the last installment number
+        if ($this->installment_number < $this->total_installments) {
+            return false;
+        }
+
+        // Verify all installments exist
+        $existingInstallments = Payment::where('enrollment_id', $this->enrollment_id)
+            ->where('concept', $this->concept)
+            ->count();
+
+        return $existingInstallments >= $this->total_installments;
+    }
+
+    /**
+     * Check if this payment belongs to a completed installment plan
+     * Used for statistics - excludes from pending counts when plan is complete
+     */
+    public function belongsToCompletePlan(): bool
+    {
+        if (!$this->installment_number || !$this->total_installments || $this->total_installments <= 1) {
+            return false;
+        }
+
+        $existingInstallments = Payment::where('enrollment_id', $this->enrollment_id)
+            ->where('concept', $this->concept)
+            ->count();
+
+        return $existingInstallments >= $this->total_installments;
+    }
+
+    /**
+     * Check if this payment should be counted as pending in statistics
+     * Returns FALSE if the payment belongs to a complete plan (should not count as pending)
+     */
+    public function shouldCountAsPending(): bool
+    {
+        // If belongs to a complete installment plan, don't count as pending
+        if ($this->belongsToCompletePlan()) {
+            return false;
+        }
+
+        // Only count as pending if status is actually pending/parcial/vencido
+        return in_array($this->real_status, ['pendiente', 'parcial', 'vencido']);
+    }
+
+    /**
+     * Check if all installments for this plan are complete
+     */
+    public function isPlanComplete(): bool
+    {
+        return $this->belongsToCompletePlan() || $this->real_status === 'pagado';
+    }
+
     public function getStatusBadgeAttribute(): string
     {
-        return match($this->status) {
+        return match($this->real_status) {
             'pendiente' => 'bg-yellow-100 text-yellow-800',
+            'parcial' => 'bg-orange-100 text-orange-800',
             'pagado' => 'bg-green-100 text-green-800',
             'vencido' => 'bg-red-100 text-red-800',
             'cancelado' => 'bg-gray-100 text-gray-800',
@@ -112,13 +243,19 @@ class Payment extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
+        return match($this->real_status) {
             'pendiente' => 'Pendiente',
+            'parcial' => 'Parcial',
             'pagado' => 'Pagado',
             'vencido' => 'Vencido',
             'cancelado' => 'Cancelado',
             default => 'Desconocido',
         };
+    }
+
+    public function getRemainingAmountAttribute(): float
+    {
+        return max(0, $this->amount - ($this->amount_paid ?? 0));
     }
 
     public function getReceiptUrlAttribute(): ?string

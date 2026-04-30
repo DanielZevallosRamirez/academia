@@ -48,10 +48,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="concept" class="block text-sm font-medium text-gray-700 mb-1">Concepto</label>
-                    <select name="concept" id="concept" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <select name="concept" id="concept" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" onchange="handleConceptChange()">
                         <option value="">Seleccionar concepto...</option>
                         <option value="matricula" {{ old('concept') == 'matricula' ? 'selected' : '' }}>Matricula</option>
                         <option value="mensualidad" {{ old('concept') == 'mensualidad' ? 'selected' : '' }}>Mensualidad</option>
+                        <option value="mensualidad_cuotas" {{ old('concept') == 'mensualidad_cuotas' ? 'selected' : '' }}>Mensualidad (Cuotas)</option>
+                        <option value="pension" {{ old('concept') == 'pension' ? 'selected' : '' }}>Pension</option>
+                        <option value="pension_cuotas" {{ old('concept') == 'pension_cuotas' ? 'selected' : '' }}>Pension (Cuotas)</option>
                         <option value="material" {{ old('concept') == 'material' ? 'selected' : '' }}>Material de estudio</option>
                         <option value="certificado" {{ old('concept') == 'certificado' ? 'selected' : '' }}>Certificado</option>
                         <option value="examen" {{ old('concept') == 'examen' ? 'selected' : '' }}>Examen</option>
@@ -62,10 +65,21 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label for="installment_number" class="block text-sm font-medium text-gray-700 mb-1">Numero de cuota (opcional)</label>
-                    <input type="number" name="installment_number" id="installment_number" value="{{ old('installment_number') }}" min="1" max="24" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: 1, 2, 3...">
+                <div id="installment_number_container">
+                    <label for="installment_number" class="block text-sm font-medium text-gray-700 mb-1">Numero de cuota</label>
+                    <input type="number" name="installment_number" id="installment_number" value="{{ old('installment_number') }}" min="1" max="24" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Auto">
+                    <p class="mt-1 text-xs text-gray-500" id="installment_hint">Se calcula automaticamente</p>
                     @error('installment_number')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Total installments (only visible for concepts with _cuotas) -->
+                <div id="total_installments_container" class="hidden">
+                    <label for="total_installments" class="block text-sm font-medium text-gray-700 mb-1">Total de cuotas</label>
+                    <input type="number" name="total_installments" id="total_installments" value="{{ old('total_installments', 1) }}" min="1" max="36" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: 6, 12...">
+                    <p class="mt-1 text-xs text-gray-500">Numero total de cuotas para este concepto</p>
+                    @error('total_installments')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
@@ -393,7 +407,124 @@ document.addEventListener('DOMContentLoaded', function() {
             handleFileSelect(input);
         }
     }, false);
+
+    // Initialize concept change handler
+    handleConceptChange();
+    
+    // Watch for enrollment change
+    const enrollmentSelect = document.getElementById('enrollment_id');
+    if (enrollmentSelect) {
+        enrollmentSelect.addEventListener('change', updateInstallmentNumber);
+    }
 });
+
+// Handle concept selection change
+function handleConceptChange() {
+    const concept = document.getElementById('concept').value;
+    const totalInstallmentsContainer = document.getElementById('total_installments_container');
+    const installmentHint = document.getElementById('installment_hint');
+    
+    // Check if concept requires installments (ends with _cuotas)
+    const requiresInstallments = concept.endsWith('_cuotas');
+    
+    if (requiresInstallments) {
+        totalInstallmentsContainer.classList.remove('hidden');
+        installmentHint.textContent = 'Se calcula segun el historial';
+    } else {
+        totalInstallmentsContainer.classList.add('hidden');
+        installmentHint.textContent = 'Se calcula automaticamente';
+    }
+    
+    // Update installment number when concept changes
+    updateInstallmentNumber();
+}
+
+// Fetch and update the next installment number
+async function updateInstallmentNumber() {
+    const enrollmentId = document.getElementById('enrollment_id').value;
+    const concept = document.getElementById('concept').value;
+    const installmentInput = document.getElementById('installment_number');
+    const totalInstallmentsInput = document.getElementById('total_installments');
+    const installmentHint = document.getElementById('installment_hint');
+    const amountInput = document.getElementById('amount');
+    const dueDateInput = document.getElementById('due_date');
+    const paymentMethodInput = document.getElementById('payment_method');
+    
+    if (!enrollmentId || !concept) {
+        installmentInput.value = '';
+        installmentHint.textContent = 'Selecciona inscripcion y concepto';
+        resetFieldsToEditable();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`{{ route('payments.next-installment') }}?enrollment_id=${enrollmentId}&concept=${concept}`);
+        const data = await response.json();
+        
+        installmentInput.value = data.next_installment;
+        
+        if (data.is_first || data.is_plan_complete) {
+            installmentHint.textContent = data.is_plan_complete ? 'Plan anterior completado - Nueva cuota 1' : 'Primera cuota para este concepto';
+            // For new installment plans, allow editing all fields
+            resetFieldsToEditable();
+            if (concept.endsWith('_cuotas')) {
+                totalInstallmentsInput.value = 1;
+            }
+        } else {
+            installmentHint.textContent = `Cuota ${data.next_installment} de ${data.total_installments}`;
+            
+            // Pre-fill and disable fields from previous payment
+            if (data.total_installments > 1) {
+                totalInstallmentsInput.value = data.total_installments;
+                totalInstallmentsInput.readOnly = true;
+                totalInstallmentsInput.classList.add('bg-gray-100');
+            }
+            
+            if (data.previous_amount) {
+                amountInput.value = data.previous_amount;
+                amountInput.readOnly = true;
+                amountInput.classList.add('bg-gray-100');
+            }
+            
+            if (data.previous_due_date) {
+                dueDateInput.value = data.previous_due_date;
+                dueDateInput.readOnly = true;
+                dueDateInput.classList.add('bg-gray-100');
+            }
+            
+            if (data.previous_payment_method) {
+                paymentMethodInput.value = data.previous_payment_method;
+                paymentMethodInput.disabled = true;
+                paymentMethodInput.classList.add('bg-gray-100');
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching installment:', error);
+        installmentInput.value = 1;
+        installmentHint.textContent = 'Cuota 1 (nueva)';
+        resetFieldsToEditable();
+    }
+}
+
+// Reset fields to editable state
+function resetFieldsToEditable() {
+    const totalInstallmentsInput = document.getElementById('total_installments');
+    const amountInput = document.getElementById('amount');
+    const dueDateInput = document.getElementById('due_date');
+    const paymentMethodInput = document.getElementById('payment_method');
+    
+    totalInstallmentsInput.readOnly = false;
+    totalInstallmentsInput.classList.remove('bg-gray-100');
+    
+    amountInput.readOnly = false;
+    amountInput.classList.remove('bg-gray-100');
+    
+    dueDateInput.readOnly = false;
+    dueDateInput.classList.remove('bg-gray-100');
+    
+    paymentMethodInput.disabled = false;
+    paymentMethodInput.classList.remove('bg-gray-100');
+}
 </script>
 @endpush
 @endsection

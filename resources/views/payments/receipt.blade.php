@@ -143,18 +143,30 @@
             font-size: 12px;
         }
         .signature-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             margin: 40px 0;
         }
         .signature-box {
             text-align: center;
+            width: 250px;
         }
         .signature-line {
             border-top: 1px solid #1f2937;
             padding-top: 10px;
-            margin-top: 60px;
+            margin-top: 15px;
+        }
+        .stamp-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .academy-stamp {
+            width: 150px;
+            height: auto;
+            opacity: 0.9;
         }
         .print-btn {
             position: fixed;
@@ -234,9 +246,9 @@
             <tbody>
                 <tr>
                     <td>
-                        {{ ucfirst($payment->concept) }}
+                        {{ ucfirst(str_replace('_', ' ', $payment->concept)) }}
                         @if($payment->installment_number)
-                            <br><small style="color: #6b7280;">Cuota {{ $payment->installment_number }}</small>
+                            <br><small style="color: #6b7280;">{{ $payment->installment_label }}</small>
                         @endif
                     </td>
                     <td>{{ $payment->notes ?? 'Pago correspondiente al programa' }}</td>
@@ -277,14 +289,12 @@
             </span>
         </div>
 
-        <div class="signature-section">
-            <div class="signature-box">
-                <div class="signature-line">
-                    Firma del Estudiante
+        <div class="signature-section" style="justify-content: center;">
+            <div class="signature-box" style="text-align: center;">
+                <div class="stamp-container">
+                    <img src="{{ asset('images/sello-academia.jpg') }}" alt="Sello de la Academia" class="academy-stamp">
                 </div>
-            </div>
-            <div class="signature-box">
-                <div class="signature-line">
+                <div class="signature-line" style="margin-top: 10px;">
                     Sello y Firma de la Academia
                 </div>
             </div>

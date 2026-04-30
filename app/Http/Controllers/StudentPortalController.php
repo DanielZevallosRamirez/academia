@@ -101,10 +101,24 @@ class StudentPortalController extends Controller
             ->orderBy('due_date', 'desc')
             ->paginate(10);
 
+        // Calculate totals based on amount_paid field
+        $allPayments = $user->payments()->get();
+        
+        // Total pagado = sum of all amount_paid
+        $totalPagado = $allPayments->sum('amount_paid');
+        
+        // Total pendiente = sum of (amount - amount_paid) for unpaid payments
+        $totalPendiente = $allPayments->sum(function ($payment) {
+            if ($payment->real_status !== 'pagado') {
+                return $payment->amount - ($payment->amount_paid ?? 0);
+            }
+            return 0;
+        });
+
         $stats = [
-            'total_pendiente' => $user->payments()->pending()->sum('amount'),
-            'total_pagado' => $user->payments()->paid()->sum('amount'),
-            'proximo_pago' => $user->payments()->pending()->orderBy('due_date')->first(),
+            'total_pendiente' => $totalPendiente,
+            'total_pagado' => $totalPagado,
+            'proximo_pago' => $user->payments()->whereIn('status', ['pendiente', 'parcial'])->orderBy('due_date')->first(),
         ];
 
         return view('student-portal.my-payments', compact('payments', 'stats'));

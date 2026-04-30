@@ -44,30 +44,59 @@ class PaymentController extends Controller
 
         $payments = $query->latest()->paginate(15);
 
-        // Calculate stats - simpler approach
-        $allPayments = Payment::all();
-        
-        $totalPendiente = $allPayments->whereIn('status', ['pendiente', 'parcial', 'vencido'])
-            ->sum(function($p) {
+        // Check if any filter is applied
+        $hasFilters = $request->filled('search') || $request->filled('status') || 
+                      $request->filled('method') || $request->filled('date_from') || 
+                      $request->filled('date_to');
+
+        if ($hasFilters) {
+            // Calculate stats based on filtered payments
+            $filteredPayments = (clone $query)->get();
+            
+            $pendingPayments = $filteredPayments->filter(function($p) {
+                return $p->shouldCountAsPending();
+            });
+            
+            $totalPendiente = $pendingPayments->sum(function($p) {
                 return $p->amount - ($p->amount_paid ?? 0);
             });
-        
-        $totalPagadoMes = $allPayments
-            ->filter(function($p) {
-                return $p->created_at->month == now()->month 
-                    && $p->created_at->year == now()->year
-                    && in_array($p->status, ['pagado', 'parcial']);
-            })
-            ->sum('amount_paid');
-        
-        $cantidadVencidos = $allPayments
-            ->where('status', 'pendiente')
-            ->filter(function($p) {
-                return $p->due_date && $p->due_date < today();
-            })
-            ->count();
-        
-        $cantidadPendientes = $allPayments->whereIn('status', ['pendiente', 'parcial'])->count();
+            
+            $totalPagadoMes = $filteredPayments->sum('amount_paid');
+            
+            $cantidadVencidos = $filteredPayments
+                ->filter(function($p) {
+                    return $p->shouldCountAsPending() && $p->due_date && $p->due_date < today();
+                })
+                ->count();
+            
+            $cantidadPendientes = $pendingPayments->count();
+        } else {
+            // Calculate stats for all payments (no filters)
+            $allPayments = Payment::all();
+            
+            $pendingPayments = $allPayments->filter(function($p) {
+                return $p->shouldCountAsPending();
+            });
+            
+            $totalPendiente = $pendingPayments->sum(function($p) {
+                return $p->amount - ($p->amount_paid ?? 0);
+            });
+            
+            $totalPagadoMes = $allPayments
+                ->filter(function($p) {
+                    return $p->created_at->month == now()->month 
+                        && $p->created_at->year == now()->year;
+                })
+                ->sum('amount_paid');
+            
+            $cantidadVencidos = $allPayments
+                ->filter(function($p) {
+                    return $p->shouldCountAsPending() && $p->due_date && $p->due_date < today();
+                })
+                ->count();
+            
+            $cantidadPendientes = $pendingPayments->count();
+        }
         
         $stats = [
             'total_pendiente' => $totalPendiente,
@@ -100,9 +129,10 @@ class PaymentController extends Controller
             'enrollment_id' => 'required|exists:enrollments,id',
             'amount' => 'required|numeric|min:0.01',
             'due_date' => 'required|date',
-            'payment_method' => 'nullable|in:efectivo,transferencia,tarjeta,online,yape',
+            'payment_method' => 'nullable|in:efectivo,transferencia,tarjeta,online,yape,plin',
             'concept' => 'nullable|string',
             'installment_number' => 'nullable|integer|min:1',
+            'total_installments' => 'nullable|integer|min:1',
             'amount_paid' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:pendiente,pagado,parcial',
             'transaction_id' => 'nullable|string',
@@ -113,6 +143,30 @@ class PaymentController extends Controller
         // Get user_id from enrollment
         $enrollment = Enrollment::findOrFail($validated['enrollment_id']);
         $validated['user_id'] = $enrollment->user_id;
+
+        // Auto-calculate installment number if not provided
+        $concept = $validated['concept'] ?? 'mensualidad';
+        if (empty($validated['installment_number'])) {
+            // Find the last installment for this enrollment and concept
+            $lastPayment = Payment::where('enrollment_id', $validated['enrollment_id'])
+                ->where('concept', $concept)
+                ->orderBy('installment_number', 'desc')
+                ->first();
+            
+            $validated['installment_number'] = $lastPayment 
+                ? ($lastPayment->installment_number + 1) 
+                : 1;
+            
+            // If there's a previous payment with total_installments, use it
+            if ($lastPayment && $lastPayment->total_installments && empty($validated['total_installments'])) {
+                $validated['total_installments'] = $lastPayment->total_installments;
+            }
+        }
+
+        // Default total_installments to 1 if not set
+        if (empty($validated['total_installments'])) {
+            $validated['total_installments'] = 1;
+        }
 
         // Handle file upload
         if ($request->hasFile('receipt_file')) {
@@ -162,6 +216,7 @@ class PaymentController extends Controller
             'transaction_id' => 'nullable|string',
             'concept' => 'nullable|string',
             'installment_number' => 'nullable|integer|min:1',
+            'total_installments' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
             'payment_proof' => 'nullable|image|max:5120',
         ]);
@@ -173,6 +228,19 @@ class PaymentController extends Controller
                 Storage::disk('public')->delete($payment->payment_proof);
             }
             $validated['payment_proof'] = $request->file('payment_proof')->store('payment-proofs', 'public');
+        }
+
+        // Auto-determine status based on amount_paid
+        $amountPaid = $validated['amount_paid'] ?? $payment->amount_paid ?? 0;
+        $amount = $validated['amount'] ?? $payment->amount;
+        
+        if ($amountPaid >= $amount) {
+            $validated['status'] = 'pagado';
+            $validated['paid_at'] = $validated['paid_at'] ?? $payment->paid_at ?? now();
+        } elseif ($amountPaid > 0) {
+            $validated['status'] = 'parcial';
+        } else {
+            $validated['status'] = $validated['status'] ?? 'pendiente';
         }
 
         $payment->update($validated);
@@ -378,5 +446,45 @@ class PaymentController extends Controller
         $payment->load(['student', 'enrollment.program']);
 
         return view('payments.receipt', compact('payment'));
+    }
+
+    /**
+     * API to get next installment number for a given enrollment and concept
+     */
+    public function getNextInstallment(Request $request)
+    {
+        $enrollmentId = $request->input('enrollment_id');
+        $concept = $request->input('concept', 'mensualidad');
+
+        if (!$enrollmentId) {
+            return response()->json([
+                'next_installment' => 1, 
+                'total_installments' => 1,
+                'is_first' => true,
+                'is_plan_complete' => false,
+            ]);
+        }
+
+        $lastPayment = Payment::where('enrollment_id', $enrollmentId)
+            ->where('concept', $concept)
+            ->orderBy('installment_number', 'desc')
+            ->first();
+
+        $nextInstallment = $lastPayment ? ($lastPayment->installment_number + 1) : 1;
+        $totalInstallments = $lastPayment ? ($lastPayment->total_installments ?? 1) : 1;
+        
+        // Check if the installment plan is complete
+        $isPlanComplete = $lastPayment && $lastPayment->installment_number >= $totalInstallments;
+
+        return response()->json([
+            'next_installment' => $isPlanComplete ? 1 : $nextInstallment,
+            'total_installments' => $isPlanComplete ? 1 : $totalInstallments,
+            'is_first' => $lastPayment === null || $isPlanComplete,
+            'is_plan_complete' => $isPlanComplete,
+            // Data from previous payment to pre-fill form
+            'previous_amount' => $lastPayment ? $lastPayment->amount : null,
+            'previous_payment_method' => $lastPayment ? $lastPayment->payment_method : null,
+            'previous_due_date' => $lastPayment && $lastPayment->due_date ? $lastPayment->due_date->addMonth()->format('Y-m-d') : null,
+        ]);
     }
 }

@@ -45,7 +45,9 @@
                     <select name="concept" id="concept" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         <option value="">Seleccionar concepto...</option>
                         <option value="matricula" {{ old('concept', $payment->concept) == 'matricula' ? 'selected' : '' }}>Matricula</option>
+                        <option value="mensualidad_cuotas" {{ old('concept', $payment->concept) == 'matricula_cuotas' ? 'selected' : '' }}>Matricula (Cuotas)</option>
                         <option value="mensualidad" {{ old('concept', $payment->concept) == 'mensualidad' ? 'selected' : '' }}>Mensualidad</option>
+                        <option value="mensualidad_cuotas" {{ old('concept', $payment->concept) == 'mensualidad_cuotas' ? 'selected' : '' }}>Mensualidad (Cuotas)</option>
                         <option value="material" {{ old('concept', $payment->concept) == 'material' ? 'selected' : '' }}>Material de estudio</option>
                         <option value="certificado" {{ old('concept', $payment->concept) == 'certificado' ? 'selected' : '' }}>Certificado</option>
                         <option value="examen" {{ old('concept', $payment->concept) == 'examen' ? 'selected' : '' }}>Examen</option>
@@ -58,8 +60,17 @@
 
                 <div>
                     <label for="installment_number" class="block text-sm font-medium text-gray-700 mb-1">Numero de cuota</label>
-                    <input type="number" name="installment_number" id="installment_number" value="{{ old('installment_number', $payment->installment_number) }}" min="1" max="24" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: 1, 2, 3...">
+                    <input type="number" name="installment_number" id="installment_number" value="{{ old('installment_number', $payment->installment_number) }}" min="1" max="36" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: 1, 2, 3...">
                     @error('installment_number')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="total_installments" class="block text-sm font-medium text-gray-700 mb-1">Total de cuotas</label>
+                    <input type="number" name="total_installments" id="total_installments" value="{{ old('total_installments', $payment->total_installments ?? 1) }}" min="1" max="36" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: 6, 12...">
+                    <p class="mt-1 text-xs text-gray-500">Numero total de cuotas para este concepto</p>
+                    @error('total_installments')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>

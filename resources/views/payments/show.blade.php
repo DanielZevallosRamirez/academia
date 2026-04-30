@@ -18,7 +18,7 @@
             </div>
         </div>
         <div class="flex gap-3">
-            @if($payment->status !== 'pagado')
+            @if($payment->real_status !== 'pagado')
             <a href="{{ route('payments.process', $payment) }}" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -52,13 +52,8 @@
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Estado</dt>
                             <dd class="mt-1">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                                    {{ $payment->status === 'pagado' ? 'bg-green-100 text-green-700' : '' }}
-                                    {{ $payment->status === 'pendiente' ? 'bg-amber-100 text-amber-700' : '' }}
-                                    {{ $payment->status === 'parcial' ? 'bg-blue-100 text-blue-700' : '' }}
-                                    {{ $payment->status === 'vencido' ? 'bg-red-100 text-red-700' : '' }}
-                                    {{ $payment->status === 'cancelado' ? 'bg-gray-100 text-gray-700' : '' }}">
-                                    {{ ucfirst($payment->status) }}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $payment->status_badge }}">
+                                    {{ $payment->status_label }}
                                 </span>
                             </dd>
                         </div>
@@ -194,7 +189,7 @@
                     <h2 class="text-lg font-semibold text-gray-900">Acciones</h2>
                 </div>
                 <div class="p-4 space-y-2">
-                    @if($payment->status !== 'pagado')
+                    @if($payment->real_status !== 'pagado')
                     <a href="{{ route('payments.process', $payment) }}" class="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-emerald-50 rounded-lg transition-colors">
                         <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>

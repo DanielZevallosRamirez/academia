@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payments/{payment}/process', [PaymentController::class, 'process'])->name('payments.process');
     Route::post('payments/{payment}/process', [PaymentController::class, 'processPayment'])->name('payments.process.store');
     Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+    Route::get('payments-next-installment', [PaymentController::class, 'getNextInstallment'])->name('payments.next-installment');
         Route::post('payments/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('payments.mark-paid');
         Route::post('payments/{payment}/documents', [PaymentController::class, 'uploadDocument'])->name('payments.upload-document');
         Route::delete('payment-documents/{document}', [PaymentController::class, 'deleteDocument'])->name('payment-documents.destroy');
@@ -127,6 +128,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payments/{payment}/process', [PaymentController::class, 'process'])->name('payments.process');
     Route::post('payments/{payment}/process', [PaymentController::class, 'processPayment'])->name('payments.process.store');
     Route::get('payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+    Route::get('payments-next-installment', [PaymentController::class, 'getNextInstallment'])->name('payments.next-installment');
     Route::post('payments/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('payments.mark-paid');
     Route::post('payments/{payment}/upload-proof', [PaymentController::class, 'uploadProof'])->name('payments.upload-proof');
     

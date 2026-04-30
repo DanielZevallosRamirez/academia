@@ -47,12 +47,12 @@
         @include('layouts.sidebar')
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-h-screen lg:ml-64">
+        <div class="flex-1 flex flex-col min-h-screen lg:ml-64 min-w-0 overflow-hidden">
             <!-- Top Navigation -->
             @include('layouts.header')
 
             <!-- Page Content -->
-            <main class="flex-1 p-4 lg:p-6">
+            <main class="flex-1 p-4 lg:p-6 overflow-x-hidden">
                 <!-- Flash Messages -->
                 @if (session('success'))
                     <div class="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-3">
