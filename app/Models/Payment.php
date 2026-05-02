@@ -168,7 +168,7 @@ class Payment extends Model
     }
 
     /**
-     * Check if this is the last installment AND the plan is complete
+     * Check if this is the last installment AND ALL installments are fully paid
      */
     public function isLastInstallmentAndPlanComplete(): bool
     {
@@ -181,16 +181,18 @@ class Payment extends Model
             return false;
         }
 
-        // Verify all installments exist
-        $existingInstallments = Payment::where('enrollment_id', $this->enrollment_id)
+        // Verify ALL installments are fully paid (amount_paid >= amount)
+        $paidInstallments = Payment::where('enrollment_id', $this->enrollment_id)
             ->where('concept', $this->concept)
+            ->whereColumn('amount_paid', '>=', 'amount')
             ->count();
 
-        return $existingInstallments >= $this->total_installments;
+        return $paidInstallments >= $this->total_installments;
     }
 
     /**
      * Check if this payment belongs to a completed installment plan
+     * A plan is complete when ALL payments in the plan are fully paid (amount_paid >= amount)
      * Used for statistics - excludes from pending counts when plan is complete
      */
     public function belongsToCompletePlan(): bool
@@ -199,30 +201,28 @@ class Payment extends Model
             return false;
         }
 
-        $existingInstallments = Payment::where('enrollment_id', $this->enrollment_id)
+        // Count how many payments are fully paid in this plan (amount_paid >= amount)
+        $paidInstallments = Payment::where('enrollment_id', $this->enrollment_id)
             ->where('concept', $this->concept)
+            ->whereColumn('amount_paid', '>=', 'amount')
             ->count();
 
-        return $existingInstallments >= $this->total_installments;
+        // Plan is complete only if ALL installments are fully paid
+        return $paidInstallments >= $this->total_installments;
     }
 
     /**
      * Check if this payment should be counted as pending in statistics
-     * Returns FALSE if the payment belongs to a complete plan (should not count as pending)
+     * A payment counts as pending if it has pending/parcial/vencido status
      */
     public function shouldCountAsPending(): bool
     {
-        // If belongs to a complete installment plan, don't count as pending
-        if ($this->belongsToCompletePlan()) {
-            return false;
-        }
-
         // Only count as pending if status is actually pending/parcial/vencido
         return in_array($this->real_status, ['pendiente', 'parcial', 'vencido']);
     }
 
     /**
-     * Check if all installments for this plan are complete
+     * Check if all installments for this plan are complete (all paid)
      */
     public function isPlanComplete(): bool
     {

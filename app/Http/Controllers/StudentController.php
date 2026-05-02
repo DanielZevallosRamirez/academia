@@ -223,6 +223,25 @@ class StudentController extends Controller
                 // Create payment records based on payment type
                 $program = Program::find($validated['program_id']);
                 $this->createPaymentRecords($enrollment, $program, $paymentType, $numInstallments);
+                
+                // Notificar a los administradores sobre la nueva inscripcion
+                Notification::notifyAdmins(
+                    Notification::TYPE_ENROLLMENT,
+                    'Nueva inscripcion registrada',
+                    "{$student->name} {$student->last_name} ha sido inscrito al programa {$program->name}.",
+                    route('students.show', $student),
+                    ['student_id' => $student->id, 'program_id' => $program->id]
+                );
+                
+                // Notificar al estudiante sobre su inscripcion
+                Notification::notifyUser(
+                    $student->id,
+                    Notification::TYPE_ENROLLMENT,
+                    'Bienvenido al programa',
+                    "Has sido inscrito exitosamente al programa {$program->name}. Bienvenido!",
+                    route('estudiante.my-program'),
+                    ['program_id' => $program->id]
+                );
             }
         }
 
@@ -239,7 +258,7 @@ class StudentController extends Controller
         $totalAmount = $program->price;
         
         if ($paymentType === 'contado') {
-            // Single payment
+            // Single payment - full amount
             Payment::create([
                 'user_id' => $enrollment->user_id,
                 'enrollment_id' => $enrollment->id,
@@ -247,9 +266,11 @@ class StudentController extends Controller
                 'status' => 'pendiente',
                 'due_date' => $enrollment->start_date ?? now(),
                 'installment_number' => 1,
+                'total_installments' => 1,
+                'concept' => 'mensualidad',
             ]);
         } else {
-            // Multiple installments
+            // Multiple installments (cuotas)
             $installmentAmount = round($totalAmount / $numInstallments, 2);
             $startDate = $enrollment->start_date ?? now();
             
@@ -266,6 +287,8 @@ class StudentController extends Controller
                     'status' => 'pendiente',
                     'due_date' => $startDate->copy()->addMonths($i - 1),
                     'installment_number' => $i,
+                    'total_installments' => $numInstallments,
+                    'concept' => 'mensualidad_cuotas',
                 ]);
             }
         }

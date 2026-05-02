@@ -43,7 +43,10 @@ class PaymentController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $payments = $query->latest()->paginate(15);
+        $payments = $query->orderBy('user_id')
+            ->orderBy('enrollment_id')
+            ->orderBy('installment_number')
+            ->paginate(15);
 
         // Check if any filter is applied
         $hasFilters = $request->filled('search') || $request->filled('status') || 
@@ -147,25 +150,34 @@ class PaymentController extends Controller
 
         // Auto-calculate installment number if not provided
         $concept = $validated['concept'] ?? 'mensualidad';
+        
+        // Find the last installment for this enrollment and concept
+        $lastPayment = Payment::where('enrollment_id', $validated['enrollment_id'])
+            ->where('concept', $concept)
+            ->orderBy('installment_number', 'desc')
+            ->first();
+        
         if (empty($validated['installment_number'])) {
-            // Find the last installment for this enrollment and concept
-            $lastPayment = Payment::where('enrollment_id', $validated['enrollment_id'])
-                ->where('concept', $concept)
-                ->orderBy('installment_number', 'desc')
-                ->first();
-            
             $validated['installment_number'] = $lastPayment 
                 ? ($lastPayment->installment_number + 1) 
                 : 1;
-            
-            // If there's a previous payment with total_installments, use it
-            if ($lastPayment && $lastPayment->total_installments && empty($validated['total_installments'])) {
-                $validated['total_installments'] = $lastPayment->total_installments;
-            }
         }
 
-        // Default total_installments to 1 if not set
-        if (empty($validated['total_installments'])) {
+        // ALWAYS set total_installments for cuotas concepts based on enrollment
+        $isCuotasConcept = str_contains($concept, 'cuotas');
+        
+        if ($isCuotasConcept) {
+            // For cuotas, always use enrollment's num_installments
+            // This ensures consistency across all payments
+            if ($enrollment->num_installments && $enrollment->num_installments > 1) {
+                $validated['total_installments'] = $enrollment->num_installments;
+            } elseif ($lastPayment && $lastPayment->total_installments > 1) {
+                $validated['total_installments'] = $lastPayment->total_installments;
+            } else {
+                $validated['total_installments'] = $validated['total_installments'] ?? 1;
+            }
+        } else {
+            // For non-cuotas concepts, default to 1
             $validated['total_installments'] = 1;
         }
 
@@ -483,8 +495,27 @@ class PaymentController extends Controller
                 'total_installments' => 1,
                 'is_first' => true,
                 'is_plan_complete' => false,
+                'suggested_amount' => null,
+                'program_price' => null,
             ]);
         }
+
+        // Get enrollment with program data
+        $enrollment = Enrollment::with('program')->find($enrollmentId);
+        if (!$enrollment) {
+            return response()->json([
+                'next_installment' => 1,
+                'total_installments' => 1,
+                'is_first' => true,
+                'is_plan_complete' => false,
+                'suggested_amount' => null,
+                'program_price' => null,
+            ]);
+        }
+
+        $programPrice = $enrollment->program->price ?? 0;
+        $enrollmentInstallments = $enrollment->num_installments ?? 1;
+        $paymentType = $enrollment->payment_type ?? 'contado';
 
         $lastPayment = Payment::where('enrollment_id', $enrollmentId)
             ->where('concept', $concept)
@@ -492,16 +523,44 @@ class PaymentController extends Controller
             ->first();
 
         $nextInstallment = $lastPayment ? ($lastPayment->installment_number + 1) : 1;
-        $totalInstallments = $lastPayment ? ($lastPayment->total_installments ?? 1) : 1;
+        
+        // For first payment with cuotas, use enrollment's num_installments
+        // For subsequent payments, use the total_installments from previous payment
+        $totalInstallments = $lastPayment 
+            ? ($lastPayment->total_installments ?? $enrollmentInstallments) 
+            : $enrollmentInstallments;
         
         // Check if the installment plan is complete
         $isPlanComplete = $lastPayment && $lastPayment->installment_number >= $totalInstallments;
 
+        // Calculate suggested amount based on concept
+        $suggestedAmount = null;
+        if ($concept === 'mensualidad') {
+            // Full payment - use program price
+            $suggestedAmount = $programPrice;
+        } elseif ($concept === 'mensualidad_cuotas' || $concept === 'pension_cuotas') {
+            // Installment payment - use program price divided by number of installments
+            if ($lastPayment && !$isPlanComplete) {
+                // Use previous payment amount for consistency
+                $suggestedAmount = $lastPayment->amount;
+            } else {
+                // Calculate based on enrollment settings
+                $suggestedAmount = $enrollmentInstallments > 0 
+                    ? round($programPrice / $enrollmentInstallments, 2) 
+                    : $programPrice;
+            }
+        }
+
         return response()->json([
             'next_installment' => $isPlanComplete ? 1 : $nextInstallment,
-            'total_installments' => $isPlanComplete ? 1 : $totalInstallments,
+            'total_installments' => $isPlanComplete ? $enrollmentInstallments : $totalInstallments,
             'is_first' => $lastPayment === null || $isPlanComplete,
             'is_plan_complete' => $isPlanComplete,
+            // Enrollment data
+            'enrollment_installments' => $enrollmentInstallments,
+            'enrollment_payment_type' => $paymentType,
+            'program_price' => $programPrice,
+            'suggested_amount' => $suggestedAmount,
             // Data from previous payment to pre-fill form
             'previous_amount' => $lastPayment ? $lastPayment->amount : null,
             'previous_payment_method' => $lastPayment ? $lastPayment->payment_method : null,

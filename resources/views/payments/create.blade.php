@@ -51,9 +51,10 @@
                     <select name="concept" id="concept" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" onchange="handleConceptChange()">
                         <option value="">Seleccionar concepto...</option>
                         <option value="matricula" {{ old('concept') == 'matricula' ? 'selected' : '' }}>Matricula</option>
-                        <option value="matricula_cuotas" {{ old('concept') == 'matricula_cuotas' ? 'selected' : '' }}>Matricula (Cuotas)</option>
                         <option value="mensualidad" {{ old('concept') == 'mensualidad' ? 'selected' : '' }}>Mensualidad</option>
                         <option value="mensualidad_cuotas" {{ old('concept') == 'mensualidad_cuotas' ? 'selected' : '' }}>Mensualidad (Cuotas)</option>
+                        <option value="pension" {{ old('concept') == 'pension' ? 'selected' : '' }}>Pension</option>
+                        <option value="pension_cuotas" {{ old('concept') == 'pension_cuotas' ? 'selected' : '' }}>Pension (Cuotas)</option>
                         <option value="material" {{ old('concept') == 'material' ? 'selected' : '' }}>Material de estudio</option>
                         <option value="certificado" {{ old('concept') == 'certificado' ? 'selected' : '' }}>Certificado</option>
                         <option value="examen" {{ old('concept') == 'examen' ? 'selected' : '' }}>Examen</option>
@@ -462,12 +463,32 @@ async function updateInstallmentNumber() {
         
         installmentInput.value = data.next_installment;
         
+        // Check if this is a cuota-based concept
+        const isCuotasConcept = concept.endsWith('_cuotas');
+        
         if (data.is_first || data.is_plan_complete) {
             installmentHint.textContent = data.is_plan_complete ? 'Plan anterior completado - Nueva cuota 1' : 'Primera cuota para este concepto';
             // For new installment plans, allow editing all fields
             resetFieldsToEditable();
-            if (concept.endsWith('_cuotas')) {
-                totalInstallmentsInput.value = 1;
+            
+            if (isCuotasConcept) {
+                // Use enrollment's num_installments for cuotas
+                totalInstallmentsInput.value = data.enrollment_installments || 1;
+                totalInstallmentsInput.readOnly = true;
+                totalInstallmentsInput.classList.add('bg-gray-100');
+            }
+            
+            // Set suggested amount based on concept type
+            if (data.suggested_amount) {
+                amountInput.value = data.suggested_amount;
+                if (isCuotasConcept && !data.is_plan_complete) {
+                    // Lock amount for cuotas to maintain consistency
+                    amountInput.readOnly = true;
+                    amountInput.classList.add('bg-gray-100');
+                }
+            } else if (concept === 'mensualidad' && data.program_price) {
+                // Full mensualidad - use program price
+                amountInput.value = data.program_price;
             }
         } else {
             installmentHint.textContent = `Cuota ${data.next_installment} de ${data.total_installments}`;
@@ -479,7 +500,11 @@ async function updateInstallmentNumber() {
                 totalInstallmentsInput.classList.add('bg-gray-100');
             }
             
-            if (data.previous_amount) {
+            if (data.suggested_amount) {
+                amountInput.value = data.suggested_amount;
+                amountInput.readOnly = true;
+                amountInput.classList.add('bg-gray-100');
+            } else if (data.previous_amount) {
                 amountInput.value = data.previous_amount;
                 amountInput.readOnly = true;
                 amountInput.classList.add('bg-gray-100');
@@ -487,14 +512,10 @@ async function updateInstallmentNumber() {
             
             if (data.previous_due_date) {
                 dueDateInput.value = data.previous_due_date;
-                dueDateInput.readOnly = true;
-                dueDateInput.classList.add('bg-gray-100');
             }
             
             if (data.previous_payment_method) {
                 paymentMethodInput.value = data.previous_payment_method;
-                paymentMethodInput.disabled = true;
-                paymentMethodInput.classList.add('bg-gray-100');
             }
         }
     } catch (error) {
