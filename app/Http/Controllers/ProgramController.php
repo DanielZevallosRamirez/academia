@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\Module;
 use App\Models\Content;
+use App\Models\Notification;
 use App\Models\Program;
 use App\Models\ClassSession;
 use App\Models\User;
@@ -75,6 +76,15 @@ class ProgramController extends Controller
             $path = $request->file('image')->store('programs', 'public');
             $program->update(['image' => $path]);
         }
+
+        // Notificar a administradores sobre nuevo programa
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            'Nuevo programa creado',
+            "Se ha creado el programa: {$program->name}.",
+            route('programs.show', $program),
+            ['program_id' => $program->id]
+        );
 
         return redirect()
             ->route('programs.show', $program)

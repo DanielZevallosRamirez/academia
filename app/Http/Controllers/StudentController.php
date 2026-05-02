@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enrollment;
+use App\Models\Notification;
+use App\Models\Payment;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -90,14 +92,44 @@ class StudentController extends Controller
 
         // Crear inscripción si se seleccionó un programa
         if ($request->filled('program_id')) {
-            Enrollment::create([
+            $enrollment = Enrollment::create([
                 'user_id' => $student->id,
                 'program_id' => $validated['program_id'],
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
                 'status' => 'activo',
             ]);
+
+            $program = Program::find($validated['program_id']);
+            
+            // Notificar a los administradores sobre nueva inscripcion
+            Notification::notifyAdmins(
+                Notification::TYPE_ENROLLMENT,
+                'Nueva inscripcion',
+                "El estudiante {$student->name} se ha inscrito al programa {$program->name}.",
+                route('students.show', $student),
+                ['student_id' => $student->id, 'program_id' => $program->id]
+            );
+
+            // Notificar al estudiante sobre su inscripcion
+            Notification::notifyUser(
+                $student->id,
+                Notification::TYPE_ENROLLMENT,
+                'Bienvenido al programa',
+                "Has sido inscrito exitosamente al programa {$program->name}. Bienvenido!",
+                route('estudiante.my-program'),
+                ['program_id' => $program->id]
+            );
         }
+
+        // Notificar a admins sobre nuevo estudiante registrado
+        Notification::notifyAdmins(
+            Notification::TYPE_USER,
+            'Nuevo estudiante registrado',
+            "Se ha registrado un nuevo estudiante: {$student->name}.",
+            route('students.show', $student),
+            ['student_id' => $student->id]
+        );
 
         return redirect()
             ->route('students.show', $student)

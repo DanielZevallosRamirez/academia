@@ -51,10 +51,9 @@
                     <select name="concept" id="concept" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" onchange="handleConceptChange()">
                         <option value="">Seleccionar concepto...</option>
                         <option value="matricula" {{ old('concept') == 'matricula' ? 'selected' : '' }}>Matricula</option>
+                        <option value="matricula_cuotas" {{ old('concept') == 'matricula_cuotas' ? 'selected' : '' }}>Matricula (Cuotas)</option>
                         <option value="mensualidad" {{ old('concept') == 'mensualidad' ? 'selected' : '' }}>Mensualidad</option>
                         <option value="mensualidad_cuotas" {{ old('concept') == 'mensualidad_cuotas' ? 'selected' : '' }}>Mensualidad (Cuotas)</option>
-                        <option value="pension" {{ old('concept') == 'pension' ? 'selected' : '' }}>Pension</option>
-                        <option value="pension_cuotas" {{ old('concept') == 'pension_cuotas' ? 'selected' : '' }}>Pension (Cuotas)</option>
                         <option value="material" {{ old('concept') == 'material' ? 'selected' : '' }}>Material de estudio</option>
                         <option value="certificado" {{ old('concept') == 'certificado' ? 'selected' : '' }}>Certificado</option>
                         <option value="examen" {{ old('concept') == 'examen' ? 'selected' : '' }}>Examen</option>

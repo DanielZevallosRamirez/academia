@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enrollment;
+use App\Models\Notification;
 use App\Models\Payment;
 use App\Models\PaymentDocument;
 use App\Models\PaymentPlan;
@@ -186,6 +187,26 @@ class PaymentController extends Controller
         }
 
         $payment = Payment::create($validated);
+        $payment->load(['student', 'enrollment.program']);
+
+        // Notificar a administradores sobre nuevo pago
+        Notification::notifyAdmins(
+            Notification::TYPE_PAYMENT,
+            'Nuevo pago registrado',
+            "Se ha registrado un pago de S/ " . number_format($payment->amount, 2) . " para {$payment->student->name}.",
+            route('payments.show', $payment),
+            ['payment_id' => $payment->id, 'amount' => $payment->amount]
+        );
+
+        // Notificar al estudiante sobre su pago
+        Notification::notifyUser(
+            $payment->user_id,
+            Notification::TYPE_PAYMENT,
+            'Pago registrado',
+            "Tu pago de S/ " . number_format($payment->amount, 2) . " ha sido registrado. " . ($payment->installment_label ?? ''),
+            route('estudiante.my-payments'),
+            ['payment_id' => $payment->id]
+        );
 
         return redirect()
             ->route('payments.show', $payment)

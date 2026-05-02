@@ -97,4 +97,37 @@ class ClassSession extends Model
     {
         return $this->status === 'en_curso';
     }
+
+    /**
+     * Get the real/calculated status based on date
+     * If the session date has passed and status is not 'cancelada', it should be 'finalizada'
+     */
+    public function getRealStatusAttribute(): string
+    {
+        // If already cancelled, keep it
+        if ($this->status === 'cancelada') {
+            return 'cancelada';
+        }
+
+        // If already finalized, keep it
+        if ($this->status === 'finalizada') {
+            return 'finalizada';
+        }
+
+        // If session date has passed, mark as finalizada
+        if ($this->session_date && $this->session_date < today()) {
+            return 'finalizada';
+        }
+
+        // If it's today and end_time has passed, mark as finalizada
+        if ($this->session_date && $this->session_date->isToday() && $this->end_time) {
+            $endDateTime = $this->session_date->copy()->setTimeFromTimeString($this->end_time->format('H:i:s'));
+            if (now() > $endDateTime) {
+                return 'finalizada';
+            }
+        }
+
+        // Otherwise return stored status
+        return $this->status;
+    }
 }

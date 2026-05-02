@@ -136,6 +136,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     @php
+                                        $realStatus = $session->real_status;
                                         $statusColors = [
                                             'programada' => 'bg-blue-100 text-blue-700',
                                             'en_curso' => 'bg-amber-100 text-amber-700',
@@ -149,8 +150,8 @@
                                             'cancelada' => 'Cancelada',
                                         ];
                                     @endphp
-                                    <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full {{ $statusColors[$session->status] ?? 'bg-slate-100 text-slate-700' }}">
-                                        {{ $statusLabels[$session->status] ?? ucfirst($session->status) }}
+                                    <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full {{ $statusColors[$realStatus] ?? 'bg-slate-100 text-slate-700' }}">
+                                        {{ $statusLabels[$realStatus] ?? ucfirst($realStatus) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
@@ -165,7 +166,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
                                         </a>
-                                        @if($session->status !== 'finalizada')
+                                        @if($realStatus !== 'finalizada')
                                             <a href="{{ route('attendance.scanner', $session) }}" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Escanear QR">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
