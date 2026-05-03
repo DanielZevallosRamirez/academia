@@ -245,6 +245,15 @@ class StudentController extends Controller
             }
         }
 
+        // Notificar a administradores sobre actualizacion de estudiante
+        Notification::notifyAdmins(
+            Notification::TYPE_USER,
+            'Estudiante actualizado',
+            "Se ha actualizado la informacion del estudiante {$student->name} {$student->last_name}.",
+            route('students.show', $student),
+            ['student_id' => $student->id]
+        );
+
         return redirect()
             ->route('students.show', $student)
             ->with('success', 'Estudiante actualizado exitosamente.');
@@ -296,11 +305,22 @@ class StudentController extends Controller
 
     public function destroy(User $student)
     {
+        $studentName = "{$student->name} {$student->last_name}";
+        
         if ($student->photo) {
             Storage::disk('public')->delete($student->photo);
         }
 
         $student->delete();
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_USER,
+            'Estudiante eliminado',
+            "El estudiante '{$studentName}' ha sido eliminado del sistema.",
+            route('students.index'),
+            ['student_name' => $studentName]
+        );
 
         return redirect()
             ->route('students.index')

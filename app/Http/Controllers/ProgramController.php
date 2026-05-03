@@ -136,6 +136,15 @@ class ProgramController extends Controller
             $program->update(['image' => $path]);
         }
 
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            'Programa actualizado',
+            "El programa '{$program->name}' ha sido actualizado.",
+            route('programs.show', $program),
+            ['program_id' => $program->id]
+        );
+
         return redirect()
             ->route('programs.show', $program)
             ->with('success', 'Programa actualizado exitosamente.');
@@ -143,11 +152,22 @@ class ProgramController extends Controller
 
     public function destroy(Program $program)
     {
+        $programName = $program->name;
+        
         if ($program->image) {
             Storage::disk('public')->delete($program->image);
         }
 
         $program->delete();
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            'Programa eliminado',
+            "El programa '{$programName}' ha sido eliminado del sistema.",
+            route('programs.index'),
+            ['program_name' => $programName]
+        );
 
         return redirect()
             ->route('programs.index')
@@ -200,6 +220,15 @@ class ProgramController extends Controller
         if ($program->start_date) {
             $this->createInitialSession($course, $program);
         }
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Nuevo curso en {$program->name}",
+            "Se ha agregado el curso '{$course->name}' al programa.",
+            route('programs.show', $program),
+            ['course_id' => $course->id, 'program_id' => $program->id]
+        );
 
         return back()->with('success', 'Curso agregado exitosamente.');
     }
@@ -255,15 +284,36 @@ class ProgramController extends Controller
         ]);
 
         $course->update($validated);
+        $program = $course->program;
 
-        return redirect()->route('programs.show', $course->program_id)->with('success', 'Curso actualizado exitosamente.');
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Curso actualizado en {$program->name}",
+            "Se ha actualizado el curso '{$course->name}'.",
+            route('programs.show', $program->id),
+            ['course_id' => $course->id, 'program_id' => $program->id]
+        );
+
+        return redirect()->route('programs.show', $program->id)->with('success', 'Curso actualizado exitosamente.');
     }
 
     public function destroyCourse(Course $course)
     {
-        $programId = $course->program_id;
+        $program = $course->program;
+        $courseName = $course->name;
         $course->delete();
-        return redirect()->route('programs.show', $programId)->with('success', 'Curso eliminado exitosamente.');
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Curso eliminado de {$program->name}",
+            "Se ha eliminado el curso '{$courseName}'.",
+            route('programs.show', $program->id),
+            ['course_name' => $courseName, 'program_id' => $program->id]
+        );
+
+        return redirect()->route('programs.show', $program->id)->with('success', 'Curso eliminado exitosamente.');
     }
 
     // ==================== MÓDULOS ====================
@@ -277,12 +327,22 @@ class ProgramController extends Controller
 
         $maxOrder = $course->modules()->max('order') ?? 0;
 
-        $course->modules()->create([
+        $module = $course->modules()->create([
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
             'description' => $validated['description'],
             'order' => $maxOrder + 1,
         ]);
+
+        // Notificar a administradores
+        $program = $course->program;
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Nuevo modulo agregado a {$program->name}",
+            "Se ha agregado el modulo '{$module->name}' al curso '{$course->name}'.",
+            route('programs.show', $course->program_id),
+            ['module_id' => $module->id, 'course_id' => $course->id, 'program_id' => $program->id]
+        );
 
         return back()->with('success', 'Módulo agregado exitosamente.');
     }
@@ -297,47 +357,119 @@ class ProgramController extends Controller
 
         $module->update($validated);
         
-        $programId = $module->course->program_id;
-        return redirect()->route('programs.show', $programId)->with('success', 'Modulo actualizado exitosamente.');
+        $program = $module->course->program;
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Modulo actualizado en {$program->name}",
+            "Se ha actualizado el modulo '{$module->name}'.",
+            route('programs.show', $program->id),
+            ['module_id' => $module->id, 'program_id' => $program->id]
+        );
+
+        return redirect()->route('programs.show', $program->id)->with('success', 'Modulo actualizado exitosamente.');
     }
 
     public function destroyModule(Module $module)
     {
-        $programId = $module->course->program_id;
+        $program = $module->course->program;
+        $moduleName = $module->name;
         $module->delete();
-        return redirect()->route('programs.show', $programId)->with('success', 'Modulo eliminado exitosamente.');
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Modulo eliminado de {$program->name}",
+            "Se ha eliminado el modulo '{$moduleName}'.",
+            route('programs.show', $program->id),
+            ['module_name' => $moduleName, 'program_id' => $program->id]
+        );
+
+        return redirect()->route('programs.show', $program->id)->with('success', 'Modulo eliminado exitosamente.');
     }
 
     // ==================== CONTENIDOS ====================
 
     public function storeContent(Request $request, Module $module)
     {
-        $validated = $request->validate([
+        $type = $request->input('type');
+        
+        $rules = [
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
             'type' => 'required|in:pdf,video,audio,link,text',
-            'file' => 'nullable|file|max:102400', // 100MB
-            'external_url' => 'nullable|url',
-            'content_text' => 'nullable|string',
-            'duration_minutes' => 'nullable|integer|min:1',
-        ]);
+        ];
+
+        // Validación dinámica según el tipo
+        switch ($type) {
+            case 'video':
+                $rules['external_url'] = 'required|url';
+                $rules['description'] = 'nullable|string';
+                break;
+            case 'pdf':
+                $rules['files'] = 'required|array|min:1';
+                $rules['files.*'] = 'file|mimes:pdf|max:102400';
+                $rules['description'] = 'nullable|string';
+                break;
+            case 'audio':
+                $rules['files'] = 'required|array|min:1';
+                $rules['files.*'] = 'file|mimes:mp3,wav,ogg|max:102400';
+                $rules['description'] = 'nullable|string';
+                break;
+            case 'link':
+                $rules['external_url'] = 'required|url';
+                break;
+            case 'text':
+                $rules['content_text'] = 'required|string';
+                break;
+        }
+
+        $validated = $request->validate($rules);
 
         $maxOrder = $module->contents()->max('order') ?? 0;
 
-        $content = $module->contents()->create([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'type' => $validated['type'],
-            'external_url' => $validated['external_url'] ?? null,
-            'content_text' => $validated['content_text'] ?? null,
-            'duration_minutes' => $validated['duration_minutes'] ?? null,
-            'order' => $maxOrder + 1,
-        ]);
-
-        if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('contents', 'public');
-            $content->update(['file_path' => $path]);
+        // Si es PDF o Audio con múltiples archivos, crear un contenido por archivo
+        if (in_array($type, ['pdf', 'audio']) && $request->hasFile('files')) {
+            $files = $request->file('files');
+            $firstContent = null;
+            
+            foreach ($files as $index => $file) {
+                $path = $file->store('contents', 'public');
+                $contentTitle = count($files) > 1 
+                    ? $validated['title'] . ' (' . ($index + 1) . '/' . count($files) . ')'
+                    : $validated['title'];
+                
+                $content = $module->contents()->create([
+                    'title' => $contentTitle,
+                    'description' => $validated['description'] ?? null,
+                    'type' => $validated['type'],
+                    'file_path' => $path,
+                    'order' => $maxOrder + 1 + $index,
+                ]);
+                
+                if (!$firstContent) $firstContent = $content;
+            }
+            $content = $firstContent;
+        } else {
+            $content = $module->contents()->create([
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'type' => $validated['type'],
+                'external_url' => $validated['external_url'] ?? null,
+                'content_text' => $validated['content_text'] ?? null,
+                'order' => $maxOrder + 1,
+            ]);
         }
+
+        // Notificar a administradores
+        $program = $module->course->program;
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Nuevo contenido en {$program->name}",
+            "Se ha agregado el contenido '{$content->title}' al modulo '{$module->name}'.",
+            route('programs.show', $program->id),
+            ['content_id' => $content->id, 'module_id' => $module->id, 'program_id' => $program->id]
+        );
 
         return back()->with('success', 'Contenido agregado exitosamente.');
     }
@@ -349,6 +481,7 @@ class ProgramController extends Controller
             'description' => 'nullable|string',
             'type' => 'required|in:pdf,video,audio,link,text',
             'file' => 'nullable|file|max:102400',
+            'files.*' => 'nullable|file|max:102400',
             'url' => 'nullable|string',
             'content_text' => 'nullable|string',
             'duration_minutes' => 'nullable|integer|min:0',
@@ -371,19 +504,40 @@ class ProgramController extends Controller
             $content->update(['file_path' => $path]);
         }
 
-        $programId = $content->module->course->program_id;
-        return redirect()->route('programs.show', $programId)->with('success', 'Contenido actualizado exitosamente.');
+        $program = $content->module->course->program;
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Contenido actualizado en {$program->name}",
+            "Se ha actualizado el contenido '{$content->title}'.",
+            route('programs.show', $program->id),
+            ['content_id' => $content->id, 'program_id' => $program->id]
+        );
+
+        return redirect()->route('programs.show', $program->id)->with('success', 'Contenido actualizado exitosamente.');
     }
 
     public function destroyContent(Content $content)
     {
-        $programId = $content->module->course->program_id;
+        $program = $content->module->course->program;
+        $contentTitle = $content->title;
         
         if ($content->file_path) {
             Storage::disk('public')->delete($content->file_path);
         }
 
         $content->delete();
-        return redirect()->route('programs.show', $programId)->with('success', 'Contenido eliminado exitosamente.');
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_PROGRAM,
+            "Contenido eliminado de {$program->name}",
+            "Se ha eliminado el contenido '{$contentTitle}'.",
+            route('programs.show', $program->id),
+            ['content_title' => $contentTitle, 'program_id' => $program->id]
+        );
+
+        return redirect()->route('programs.show', $program->id)->with('success', 'Contenido eliminado exitosamente.');
     }
 }

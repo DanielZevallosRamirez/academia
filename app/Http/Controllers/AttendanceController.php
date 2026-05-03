@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\ClassSession;
 use App\Models\Course;
+use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -73,6 +74,15 @@ class AttendanceController extends Controller
                 'status' => 'ausente',
             ]);
         }
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_ATTENDANCE,
+            'Nueva sesion de clase creada',
+            "Se ha creado la sesion '{$session->title}' para el curso {$course->name}.",
+            route('attendance.session', $session),
+            ['session_id' => $session->id]
+        );
 
         return redirect()
             ->route('attendance.session', $session)
@@ -175,6 +185,18 @@ class AttendanceController extends Controller
             'check_in_method' => 'qr',
         ]);
 
+        // Notificar al estudiante sobre su asistencia
+        Notification::notifyUser(
+            $student->id,
+            Notification::TYPE_ATTENDANCE,
+            'Asistencia registrada',
+            $isLate 
+                ? "Tu asistencia fue registrada con tardanza en '{$session->title}'."
+                : "Tu asistencia fue registrada exitosamente en '{$session->title}'.",
+            null,
+            ['session_id' => $session->id, 'status' => $isLate ? 'tardanza' : 'presente']
+        );
+
         return response()->json([
             'success' => true,
             'message' => $isLate 
@@ -203,6 +225,23 @@ class AttendanceController extends Controller
             'check_in_method' => 'manual',
         ]);
 
+        // Notificar al estudiante sobre cambio en su asistencia
+        $statusLabels = [
+            'presente' => 'Presente',
+            'ausente' => 'Ausente',
+            'tardanza' => 'Tardanza',
+            'justificado' => 'Justificado'
+        ];
+        $session = $attendance->classSession;
+        Notification::notifyUser(
+            $attendance->user_id,
+            Notification::TYPE_ATTENDANCE,
+            'Asistencia actualizada',
+            "Tu asistencia en '{$session->title}' ha sido marcada como: {$statusLabels[$validated['status']]}.",
+            null,
+            ['session_id' => $session->id, 'status' => $validated['status']]
+        );
+
         return back()->with('success', 'Asistencia actualizada exitosamente.');
     }
 
@@ -229,6 +268,15 @@ class AttendanceController extends Controller
         ]);
 
         $session->update($validated);
+
+        // Notificar a administradores
+        Notification::notifyAdmins(
+            Notification::TYPE_ATTENDANCE,
+            'Sesion de clase actualizada',
+            "La sesion '{$session->title}' ha sido actualizada.",
+            route('attendance.session', $session),
+            ['session_id' => $session->id]
+        );
 
         return redirect()
             ->route('attendance.index')

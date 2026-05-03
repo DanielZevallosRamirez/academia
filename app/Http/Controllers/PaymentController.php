@@ -278,6 +278,16 @@ class PaymentController extends Controller
 
         $payment->update($validated);
 
+        // Notificar sobre actualizacion de pago
+        $student = $payment->student;
+        Notification::notifyAdmins(
+            Notification::TYPE_PAYMENT,
+            'Pago actualizado',
+            "Se ha actualizado el pago #{$payment->invoice_number} de {$student->name} {$student->last_name}.",
+            route('payments.show', $payment),
+            ['payment_id' => $payment->id]
+        );
+
         return redirect()
             ->route('payments.show', $payment)
             ->with('success', 'Pago actualizado exitosamente.');
@@ -285,12 +295,24 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment)
     {
+        $invoiceNumber = $payment->invoice_number;
+        $studentName = $payment->student ? "{$payment->student->name} {$payment->student->last_name}" : 'N/A';
+        
         // Eliminar documentos asociados
         foreach ($payment->documents as $document) {
             Storage::disk('public')->delete($document->file_path);
         }
 
         $payment->delete();
+
+        // Notificar sobre eliminacion de pago
+        Notification::notifyAdmins(
+            Notification::TYPE_PAYMENT,
+            'Pago eliminado',
+            "Se ha eliminado el pago #{$invoiceNumber} de {$studentName}.",
+            route('payments.index'),
+            ['invoice_number' => $invoiceNumber]
+        );
 
         return redirect()
             ->route('payments.index')
@@ -325,6 +347,26 @@ class PaymentController extends Controller
         }
 
         $payment->update($updateData);
+
+        // Notificar sobre pago completado
+        $student = $payment->student;
+        Notification::notifyAdmins(
+            Notification::TYPE_PAYMENT,
+            'Pago completado',
+            "Se ha marcado como pagado el pago #{$payment->invoice_number} de {$student->name} {$student->last_name}.",
+            route('payments.show', $payment),
+            ['payment_id' => $payment->id]
+        );
+
+        // Notificar al estudiante
+        Notification::notifyUser(
+            $payment->user_id,
+            Notification::TYPE_PAYMENT,
+            'Pago confirmado',
+            "Tu pago #{$payment->invoice_number} ha sido confirmado como pagado.",
+            route('estudiante.my-payments'),
+            ['payment_id' => $payment->id]
+        );
 
         return back()->with('success', 'Pago marcado como pagado.');
     }
@@ -479,6 +521,27 @@ class PaymentController extends Controller
         }
 
         $payment->update($updateData);
+
+        // Notificar a administradores sobre el pago procesado
+        $student = $payment->student;
+        $statusText = $totalPaid >= $payment->amount ? 'completado' : 'parcial';
+        Notification::notifyAdmins(
+            Notification::TYPE_PAYMENT,
+            'Pago procesado',
+            "Se ha procesado un pago de S/ " . number_format($amountPaid, 2) . " para {$student->name} {$student->last_name}. Estado: {$statusText}.",
+            route('payments.show', $payment),
+            ['payment_id' => $payment->id, 'amount' => $amountPaid]
+        );
+
+        // Notificar al estudiante
+        Notification::notifyUser(
+            $payment->user_id,
+            Notification::TYPE_PAYMENT,
+            'Pago registrado',
+            "Tu pago de S/ " . number_format($amountPaid, 2) . " ha sido registrado exitosamente.",
+            route('estudiante.my-payments'),
+            ['payment_id' => $payment->id]
+        );
 
         return redirect()
             ->route('payments.show', $payment)
