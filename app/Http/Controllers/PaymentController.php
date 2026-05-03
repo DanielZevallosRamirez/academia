@@ -455,19 +455,30 @@ class PaymentController extends Controller
             'payment_method' => 'required|in:efectivo,transferencia,tarjeta,yape',
             'transaction_id' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:500',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB max
         ]);
 
         $amountPaid = $validated['amount_paid'];
         $totalPaid = ($payment->amount_paid ?? 0) + $amountPaid;
 
-        $payment->update([
+        $updateData = [
             'amount_paid' => $totalPaid,
             'payment_method' => $validated['payment_method'],
             'transaction_id' => $validated['transaction_id'],
             'notes' => $validated['notes'],
             'status' => $totalPaid >= $payment->amount ? 'pagado' : 'parcial',
-            'paid_at' => $totalPaid >= $payment->amount ? now() : null,
-        ]);
+            'paid_date' => $totalPaid >= $payment->amount ? now() : null,
+        ];
+
+        // Handle payment proof upload
+        if ($request->hasFile('payment_proof')) {
+            $file = $request->file('payment_proof');
+            $filename = 'payment_' . $payment->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('payment_proofs', $filename, 'public');
+            $updateData['payment_proof'] = $path;
+        }
+
+        $payment->update($updateData);
 
         return redirect()
             ->route('payments.show', $payment)
