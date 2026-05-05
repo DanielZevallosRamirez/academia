@@ -132,11 +132,12 @@
                         <!-- Contents -->
                         <div x-show="open" x-collapse class="border-t border-gray-100">
                             @forelse($module->contents as $content)
+                            @php $isCompleted = $content->isCompletedBy(auth()->user()); @endphp
                             <a href="{{ route('estudiante.content.view', $content) }}" 
                                class="flex items-center gap-3 p-3 pl-16 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
                                 <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
-                                    {{ $content->userProgress(auth()->id())?->completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400' }}">
-                                    @if($content->userProgress(auth()->id())?->completed)
+                                    {{ $isCompleted ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400' }}">
+                                    @if($isCompleted)
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                         </svg>
