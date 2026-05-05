@@ -28,6 +28,9 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <!-- Alpine.js Collapse Plugin -->
     <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     
@@ -97,6 +100,19 @@
     </div>
 
     @stack('scripts')
+
+    <!-- SweetAlert para permisos denegados -->
+    @if(session('permission_denied'))
+    <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Acceso Denegado',
+            text: '{{ session("permission_denied") }}',
+            confirmButtonColor: '#10b981',
+            confirmButtonText: 'Entendido'
+        });
+    </script>
+    @endif
     
     <!-- Initialize Lucide Icons -->
     <script>

@@ -11,12 +11,13 @@
             <span>Dashboard</span>
         </a>
 
-        @if(auth()->user()->role === 'admin')
+        @if(auth()->user()->hasPermission('students.view') || auth()->user()->hasPermission('programs.view') || auth()->user()->hasPermission('payments.view') || auth()->user()->hasPermission('attendance.view'))
         <!-- Admin Menu -->
         <div class="pt-6 pb-2">
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Administracion</p>
         </div>
 
+        @if(auth()->user()->hasPermission('students.view'))
         <a href="{{ route('students.index') }}" 
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   {{ request()->routeIs('students.*') ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -25,7 +26,9 @@
             </svg>
             <span>Estudiantes</span>
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('programs.view'))
         <a href="{{ route('programs.index') }}" 
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   {{ request()->routeIs('programs.*') ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -34,7 +37,9 @@
             </svg>
             <span>Programas</span>
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('payments.view'))
         <a href="{{ route('payments.index') }}" 
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   {{ request()->routeIs('payments.*') ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -43,7 +48,9 @@
             </svg>
             <span>Pagos</span>
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('attendance.view'))
         <a href="{{ route('attendance.index') }}" 
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   {{ request()->routeIs('attendance.*') ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -51,6 +58,22 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
             </svg>
             <span>Asistencia</span>
+        </a>
+        @endif
+        @endif
+
+        @if(auth()->user()->hasPermission('settings.permissions'))
+        <div class="pt-6 pb-2">
+            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Configuracion</p>
+        </div>
+
+        <a href="{{ route('permissions.index') }}" 
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  {{ request()->routeIs('permissions.*') ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+            <span>Permisos</span>
         </a>
         @endif
 

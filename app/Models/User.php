@@ -181,6 +181,54 @@ class User extends Authenticatable
         return $query->where('role', 'admin');
     }
 
+    // ==================== PERMISOS ====================
+
+    /**
+     * Verificar si el usuario tiene un permiso específico
+     */
+    public function hasPermission(string $permissionSlug): bool
+    {
+        return RolePermission::hasPermission($this->role, $permissionSlug);
+    }
+
+    /**
+     * Verificar si el usuario tiene alguno de los permisos dados
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verificar si el usuario tiene todos los permisos dados
+     */
+    public function hasAllPermissions(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (!$this->hasPermission($permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Obtener todos los permisos activos del usuario
+     */
+    public function getPermissions(): array
+    {
+        if ($this->role === 'admin') {
+            return Permission::pluck('slug')->toArray();
+        }
+
+        return RolePermission::getPermissionsForRole($this->role);
+    }
+
     // ==================== HELPERS ====================
 
     public function getPhotoUrlAttribute(): string
