@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentPortalController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -128,7 +129,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Rutas sin prefijo para mantener compatibilidad
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // Estudiantes - con permisos (rutas específicas ANTES de rutas con parámetros)
+    // Usuarios - gestion unificada con permisos
+    Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:students.create');
+    Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('permission:students.create');
+    Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('permission:students.view');
+    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->middleware('permission:students.view');
+    Route::get('users/{user}/qr', [UserController::class, 'qrCode'])->name('users.qr')->middleware('permission:students.view');
+    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:students.edit');
+    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:students.edit');
+    Route::post('users/{user}/regenerate-qr', [UserController::class, 'regenerateQr'])->name('users.regenerate-qr')->middleware('permission:students.edit');
+    Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:students.delete');
+    
+    // Estudiantes - con permisos (rutas específicas ANTES de rutas con parámetros) - Mantener para compatibilidad
     Route::get('students/create', [StudentController::class, 'create'])->name('students.create')->middleware('permission:students.create');
     Route::post('students', [StudentController::class, 'store'])->name('students.store')->middleware('permission:students.create');
     Route::get('students', [StudentController::class, 'index'])->name('students.index')->middleware('permission:students.view');

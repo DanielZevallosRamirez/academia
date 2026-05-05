@@ -31,6 +31,7 @@ class User extends Authenticatable
         'photo',
         'qr_code',
         'birth_date',
+        'specialty',
     ];
 
     /**
