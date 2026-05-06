@@ -31,6 +31,17 @@
                         <i data-lucide="book-open" class="w-4 h-4 text-blue-600"></i>
                         Profesor
                     </a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <a href="{{ route('users.create', ['role' => 'secretario']) }}" 
+                       class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 text-amber-600"></i>
+                        Secretario(a)
+                    </a>
+                    <a href="{{ route('users.create', ['role' => 'administrativo']) }}" 
+                       class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        <i data-lucide="briefcase" class="w-4 h-4 text-cyan-600"></i>
+                        Administrativo
+                    </a>
                     <a href="{{ route('users.create', ['role' => 'admin']) }}" 
                        class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                         <i data-lucide="shield" class="w-4 h-4 text-purple-600"></i>
@@ -42,7 +53,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <div class="bg-white rounded-xl border border-gray-200 p-4">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-gray-100 rounded-lg">
@@ -56,12 +67,12 @@
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-purple-100 rounded-lg">
-                    <i data-lucide="shield" class="w-5 h-5 text-purple-600"></i>
+                <div class="p-2 bg-emerald-100 rounded-lg">
+                    <i data-lucide="graduation-cap" class="w-5 h-5 text-emerald-600"></i>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-purple-600">{{ $stats['admins'] }}</p>
-                    <p class="text-xs text-gray-500">Admins</p>
+                    <p class="text-2xl font-bold text-emerald-600">{{ $stats['estudiantes'] }}</p>
+                    <p class="text-xs text-gray-500">Estudiantes</p>
                 </div>
             </div>
         </div>
@@ -78,12 +89,34 @@
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-emerald-100 rounded-lg">
-                    <i data-lucide="graduation-cap" class="w-5 h-5 text-emerald-600"></i>
+                <div class="p-2 bg-amber-100 rounded-lg">
+                    <i data-lucide="clipboard-list" class="w-5 h-5 text-amber-600"></i>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-emerald-600">{{ $stats['estudiantes'] }}</p>
-                    <p class="text-xs text-gray-500">Estudiantes</p>
+                    <p class="text-2xl font-bold text-amber-600">{{ $stats['secretarios'] }}</p>
+                    <p class="text-xs text-gray-500">Secretarios</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-cyan-100 rounded-lg">
+                    <i data-lucide="briefcase" class="w-5 h-5 text-cyan-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-cyan-600">{{ $stats['administrativos'] }}</p>
+                    <p class="text-xs text-gray-500">Administrativos</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <i data-lucide="shield" class="w-5 h-5 text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-purple-600">{{ $stats['admins'] }}</p>
+                    <p class="text-xs text-gray-500">Admins</p>
                 </div>
             </div>
         </div>
@@ -113,9 +146,9 @@
             </div>
             <select name="role" class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="">Todos los roles</option>
-                <option value="admin" {{ request('role') === 'admin' ? 'selected' : '' }}>Administradores</option>
-                <option value="profesor" {{ request('role') === 'profesor' ? 'selected' : '' }}>Profesores</option>
-                <option value="estudiante" {{ request('role') === 'estudiante' ? 'selected' : '' }}>Estudiantes</option>
+                @foreach(\App\Models\User::ROLES as $value => $label)
+                    <option value="{{ $value }}" {{ request('role') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
             </select>
             <select name="status" class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="">Todos los estados</option>
@@ -170,22 +203,20 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                @if($user->role === 'admin')
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
-                                        <i data-lucide="shield" class="w-3 h-3"></i>
-                                        Admin
-                                    </span>
-                                @elseif($user->role === 'profesor')
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                                        <i data-lucide="book-open" class="w-3 h-3"></i>
-                                        Profesor
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
-                                        <i data-lucide="graduation-cap" class="w-3 h-3"></i>
-                                        Estudiante
-                                    </span>
-                                @endif
+                                @php
+                                    $roleStyles = [
+                                        'admin' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-700', 'icon' => 'shield'],
+                                        'secretario' => ['bg' => 'bg-amber-100', 'text' => 'text-amber-700', 'icon' => 'clipboard-list'],
+                                        'administrativo' => ['bg' => 'bg-cyan-100', 'text' => 'text-cyan-700', 'icon' => 'briefcase'],
+                                        'profesor' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-700', 'icon' => 'book-open'],
+                                        'estudiante' => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700', 'icon' => 'graduation-cap'],
+                                    ];
+                                    $style = $roleStyles[$user->role] ?? $roleStyles['estudiante'];
+                                @endphp
+                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full {{ $style['bg'] }} {{ $style['text'] }}">
+                                    <i data-lucide="{{ $style['icon'] }}" class="w-3 h-3"></i>
+                                    {{ \App\Models\User::getRoleName($user->role) }}
+                                </span>
                             </td>
                             <td class="px-6 py-4">
                                 <p class="text-sm text-gray-900">{{ $user->email }}</p>

@@ -70,9 +70,37 @@ class User extends Authenticatable
 
     // ==================== ROLES ====================
 
+    public const ROLES = [
+        'admin' => 'Administrador',
+        'secretario' => 'Secretario(a)',
+        'administrativo' => 'Administrativo',
+        'profesor' => 'Profesor',
+        'estudiante' => 'Estudiante',
+    ];
+
+    public static function getRoles(): array
+    {
+        return self::ROLES;
+    }
+
+    public static function getRoleName(string $role): string
+    {
+        return self::ROLES[$role] ?? $role;
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isSecretario(): bool
+    {
+        return $this->role === 'secretario';
+    }
+
+    public function isAdministrativo(): bool
+    {
+        return $this->role === 'administrativo';
     }
 
     public function isProfesor(): bool
@@ -83,6 +111,11 @@ class User extends Authenticatable
     public function isEstudiante(): bool
     {
         return $this->role === 'estudiante';
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['admin', 'secretario', 'administrativo']);
     }
 
     // ==================== RELACIONES ====================
@@ -180,6 +213,21 @@ class User extends Authenticatable
     public function scopeAdmins($query)
     {
         return $query->where('role', 'admin');
+    }
+
+    public function scopeSecretarios($query)
+    {
+        return $query->where('role', 'secretario');
+    }
+
+    public function scopeAdministrativos($query)
+    {
+        return $query->where('role', 'administrativo');
+    }
+
+    public function scopeStaff($query)
+    {
+        return $query->whereIn('role', ['admin', 'secretario', 'administrativo']);
     }
 
     // ==================== PERMISOS ====================

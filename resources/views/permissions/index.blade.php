@@ -35,6 +35,14 @@
                 <span class="text-sm text-gray-700">Administrador - Acceso completo al sistema</span>
             </div>
             <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                <span class="text-sm text-gray-700">Secretario(a) - Atencion, matriculas y pagos</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-cyan-500"></span>
+                <span class="text-sm text-gray-700">Administrativo - Gestion y reportes</span>
+            </div>
+            <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-blue-500"></span>
                 <span class="text-sm text-gray-700">Profesor - Gestion de clases y asistencia</span>
             </div>
@@ -55,10 +63,16 @@
                             Permiso
                         </th>
                         @foreach($roles as $role)
-                            <th class="px-6 py-4 text-center text-sm font-semibold min-w-[150px]
-                                {{ $role === 'admin' ? 'text-purple-700 bg-purple-50' : '' }}
-                                {{ $role === 'profesor' ? 'text-blue-700 bg-blue-50' : '' }}
-                                {{ $role === 'estudiante' ? 'text-emerald-700 bg-emerald-50' : '' }}">
+                            @php
+                                $headerStyles = [
+                                    'admin' => 'text-purple-700 bg-purple-50',
+                                    'secretario' => 'text-amber-700 bg-amber-50',
+                                    'administrativo' => 'text-cyan-700 bg-cyan-50',
+                                    'profesor' => 'text-blue-700 bg-blue-50',
+                                    'estudiante' => 'text-emerald-700 bg-emerald-50',
+                                ];
+                            @endphp
+                            <th class="px-6 py-4 text-center text-sm font-semibold min-w-[130px] {{ $headerStyles[$role] ?? '' }}">
                                 <div class="flex flex-col items-center gap-1">
                                     <span>{{ $roleNames[$role] }}</span>
                                     <form action="{{ route('permissions.reset') }}" method="POST" class="inline">
@@ -113,11 +127,22 @@
                                 @foreach($roles as $role)
                                     @php
                                         $isActive = $rolePermissions[$role]->where('permission_id', $permission->id)->where('is_active', true)->isNotEmpty();
+                                        $cellStyles = [
+                                            'admin' => 'bg-purple-50/50',
+                                            'secretario' => 'bg-amber-50/50',
+                                            'administrativo' => 'bg-cyan-50/50',
+                                            'profesor' => 'bg-blue-50/50',
+                                            'estudiante' => 'bg-emerald-50/50',
+                                        ];
+                                        $toggleStyles = [
+                                            'admin' => 'peer-focus:ring-purple-300 peer-checked:bg-purple-600',
+                                            'secretario' => 'peer-focus:ring-amber-300 peer-checked:bg-amber-600',
+                                            'administrativo' => 'peer-focus:ring-cyan-300 peer-checked:bg-cyan-600',
+                                            'profesor' => 'peer-focus:ring-blue-300 peer-checked:bg-blue-600',
+                                            'estudiante' => 'peer-focus:ring-emerald-300 peer-checked:bg-emerald-600',
+                                        ];
                                     @endphp
-                                    <td class="px-6 py-4 text-center
-                                        {{ $role === 'admin' ? 'bg-purple-50/50' : '' }}
-                                        {{ $role === 'profesor' ? 'bg-blue-50/50' : '' }}
-                                        {{ $role === 'estudiante' ? 'bg-emerald-50/50' : '' }}">
+                                    <td class="px-6 py-4 text-center {{ $cellStyles[$role] ?? '' }}">
                                         <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" 
                                                    class="sr-only peer permission-toggle"
@@ -125,9 +150,7 @@
                                                    data-permission-id="{{ $permission->id }}"
                                                    {{ $isActive ? 'checked' : '' }}>
                                             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 
-                                                        {{ $role === 'admin' ? 'peer-focus:ring-purple-300 peer-checked:bg-purple-600' : '' }}
-                                                        {{ $role === 'profesor' ? 'peer-focus:ring-blue-300 peer-checked:bg-blue-600' : '' }}
-                                                        {{ $role === 'estudiante' ? 'peer-focus:ring-emerald-300 peer-checked:bg-emerald-600' : '' }}
+                                                        {{ $toggleStyles[$role] ?? '' }}
                                                         rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full 
                                                         peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
                                                         after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
@@ -149,22 +172,30 @@
             @php
                 $activeCount = $roleActiveCounts[$role];
                 $percentage = $totalPermissions > 0 ? round(($activeCount / $totalPermissions) * 100) : 0;
+                $counterColors = [
+                    'admin' => 'text-purple-600',
+                    'secretario' => 'text-amber-600',
+                    'administrativo' => 'text-cyan-600',
+                    'profesor' => 'text-blue-600',
+                    'estudiante' => 'text-emerald-600',
+                ];
+                $barColors = [
+                    'admin' => 'bg-purple-600',
+                    'secretario' => 'bg-amber-600',
+                    'administrativo' => 'bg-cyan-600',
+                    'profesor' => 'bg-blue-600',
+                    'estudiante' => 'bg-emerald-600',
+                ];
             @endphp
             <div class="bg-white rounded-xl border border-gray-200 p-4">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="font-medium text-gray-900">{{ $roleNames[$role] }}</h4>
-                    <span data-role-counter="{{ $role }}" class="text-sm 
-                        {{ $role === 'admin' ? 'text-purple-600' : '' }}
-                        {{ $role === 'profesor' ? 'text-blue-600' : '' }}
-                        {{ $role === 'estudiante' ? 'text-emerald-600' : '' }}">
+                    <span data-role-counter="{{ $role }}" class="text-sm {{ $counterColors[$role] ?? '' }}">
                         {{ $activeCount }}/{{ $totalPermissions }} permisos
                     </span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div data-role-progress="{{ $role }}" class="h-2 rounded-full transition-all duration-300
-                        {{ $role === 'admin' ? 'bg-purple-600' : '' }}
-                        {{ $role === 'profesor' ? 'bg-blue-600' : '' }}
-                        {{ $role === 'estudiante' ? 'bg-emerald-600' : '' }}"
+                    <div data-role-progress="{{ $role }}" class="h-2 rounded-full transition-all duration-300 {{ $barColors[$role] ?? '' }}"
                         style="width: {{ $percentage }}%"></div>
                 </div>
             </div>
@@ -178,9 +209,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Contadores por rol
     const roleCounts = {
-        admin: { active: {{ $roleActiveCounts['admin'] }}, total: {{ $totalPermissions }} },
-        profesor: { active: {{ $roleActiveCounts['profesor'] }}, total: {{ $totalPermissions }} },
-        estudiante: { active: {{ $roleActiveCounts['estudiante'] }}, total: {{ $totalPermissions }} }
+        @foreach($roles as $role)
+        '{{ $role }}': { active: {{ $roleActiveCounts[$role] }}, total: {{ $totalPermissions }} },
+        @endforeach
     };
 
     function updateRoleCounter(role) {

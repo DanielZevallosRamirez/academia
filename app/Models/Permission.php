@@ -386,6 +386,28 @@ class Permission extends Model
                 'notifications.view', 'notifications.manage',
                 'settings.view', 'settings.edit', 'settings.permissions',
             ],
+            'secretario' => [
+                // Secretario(a) - Atencion al publico, matriculas, pagos
+                'dashboard.view', 'dashboard.stats',
+                'programs.view',
+                'students.view', 'students.create', 'students.edit', 'students.enroll',
+                'payments.view', 'payments.create', 'payments.approve',
+                'attendance.view',
+                'sessions.view',
+                'notifications.view',
+            ],
+            'administrativo' => [
+                // Administrativo - Gestion general, reportes
+                'dashboard.view', 'dashboard.stats',
+                'programs.view', 'programs.create', 'programs.edit',
+                'students.view', 'students.create', 'students.edit', 'students.enroll',
+                'professors.view', 'professors.create', 'professors.edit',
+                'payments.view', 'payments.create', 'payments.approve',
+                'attendance.view',
+                'sessions.view',
+                'reports.view', 'reports.export',
+                'notifications.view', 'notifications.manage',
+            ],
             'profesor' => [
                 'dashboard.view',
                 'programs.view',

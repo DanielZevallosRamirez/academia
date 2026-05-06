@@ -46,29 +46,40 @@
             <!-- Role Selection -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Usuario *</label>
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     <label class="relative cursor-pointer">
                         <input type="radio" name="role" value="estudiante" x-model="role" class="peer sr-only" {{ $defaultRole === 'estudiante' ? 'checked' : '' }}>
-                        <div class="p-4 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 hover:border-gray-300">
-                            <i data-lucide="graduation-cap" class="w-8 h-8 mx-auto mb-2 text-emerald-600"></i>
-                            <p class="font-medium text-gray-900">Estudiante</p>
-                            <p class="text-xs text-gray-500">Acceso a cursos y contenido</p>
+                        <div class="p-3 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 hover:border-gray-300">
+                            <i data-lucide="graduation-cap" class="w-6 h-6 mx-auto mb-1 text-emerald-600"></i>
+                            <p class="font-medium text-gray-900 text-sm">Estudiante</p>
                         </div>
                     </label>
                     <label class="relative cursor-pointer">
                         <input type="radio" name="role" value="profesor" x-model="role" class="peer sr-only" {{ $defaultRole === 'profesor' ? 'checked' : '' }}>
-                        <div class="p-4 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300">
-                            <i data-lucide="book-open" class="w-8 h-8 mx-auto mb-2 text-blue-600"></i>
-                            <p class="font-medium text-gray-900">Profesor</p>
-                            <p class="text-xs text-gray-500">Gestiona clases y asistencia</p>
+                        <div class="p-3 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300">
+                            <i data-lucide="book-open" class="w-6 h-6 mx-auto mb-1 text-blue-600"></i>
+                            <p class="font-medium text-gray-900 text-sm">Profesor</p>
+                        </div>
+                    </label>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="role" value="secretario" x-model="role" class="peer sr-only" {{ $defaultRole === 'secretario' ? 'checked' : '' }}>
+                        <div class="p-3 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:border-gray-300">
+                            <i data-lucide="clipboard-list" class="w-6 h-6 mx-auto mb-1 text-amber-600"></i>
+                            <p class="font-medium text-gray-900 text-sm">Secretario(a)</p>
+                        </div>
+                    </label>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="role" value="administrativo" x-model="role" class="peer sr-only" {{ $defaultRole === 'administrativo' ? 'checked' : '' }}>
+                        <div class="p-3 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-cyan-500 peer-checked:bg-cyan-50 hover:border-gray-300">
+                            <i data-lucide="briefcase" class="w-6 h-6 mx-auto mb-1 text-cyan-600"></i>
+                            <p class="font-medium text-gray-900 text-sm">Administrativo</p>
                         </div>
                     </label>
                     <label class="relative cursor-pointer">
                         <input type="radio" name="role" value="admin" x-model="role" class="peer sr-only" {{ $defaultRole === 'admin' ? 'checked' : '' }}>
-                        <div class="p-4 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-gray-300">
-                            <i data-lucide="shield" class="w-8 h-8 mx-auto mb-2 text-purple-600"></i>
-                            <p class="font-medium text-gray-900">Administrador</p>
-                            <p class="text-xs text-gray-500">Acceso total al sistema</p>
+                        <div class="p-3 border-2 border-gray-200 rounded-xl text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-gray-300">
+                            <i data-lucide="shield" class="w-6 h-6 mx-auto mb-1 text-purple-600"></i>
+                            <p class="font-medium text-gray-900 text-sm">Administrador</p>
                         </div>
                     </label>
                 </div>

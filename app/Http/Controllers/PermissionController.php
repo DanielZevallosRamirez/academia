@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Permission;
 use App\Models\RolePermission;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class PermissionController extends Controller
@@ -17,7 +18,7 @@ class PermissionController extends Controller
         $permissions = Permission::orderBy('module')->orderBy('order')->get();
         $groupedPermissions = $permissions->groupBy('module');
         
-        $roles = ['admin', 'profesor', 'estudiante'];
+        $roles = array_keys(User::ROLES);
         
         // Obtener estado de permisos para cada rol (colección completa con is_active)
         $rolePermissions = [];
@@ -39,6 +40,7 @@ class PermissionController extends Controller
             'dashboard' => 'Dashboard',
             'programs' => 'Programas',
             'students' => 'Estudiantes',
+            'users' => 'Usuarios',
             'professors' => 'Profesores',
             'payments' => 'Pagos',
             'attendance' => 'Asistencia',
@@ -50,11 +52,7 @@ class PermissionController extends Controller
         ];
         
         // Nombres legibles de roles
-        $roleNames = [
-            'admin' => 'Administrador',
-            'profesor' => 'Profesor',
-            'estudiante' => 'Estudiante',
-        ];
+        $roleNames = User::ROLES;
 
         return view('permissions.index', compact(
             'permissions',
@@ -115,7 +113,7 @@ class PermissionController extends Controller
         $permissionId = $request->input('permission_id');
         $isActive = $request->boolean('is_active');
 
-        if (!in_array($role, ['admin', 'profesor', 'estudiante'])) {
+        if (!array_key_exists($role, User::ROLES)) {
             return response()->json(['success' => false, 'message' => 'Rol no valido'], 400);
         }
 
@@ -123,18 +121,13 @@ class PermissionController extends Controller
 
         // Obtener nombre del permiso para la notificación
         $permission = Permission::find($permissionId);
-        $roleNames = [
-            'admin' => 'Administrador',
-            'profesor' => 'Profesor',
-            'estudiante' => 'Estudiante',
-        ];
 
         // Crear notificación
         $action = $isActive ? 'activado' : 'desactivado';
         Notification::notifyAdmins(
             Notification::TYPE_SYSTEM,
             'Permiso ' . $action,
-            "Se ha {$action} el permiso '{$permission->name}' para el rol {$roleNames[$role]}.",
+            "Se ha {$action} el permiso '{$permission->name}' para el rol " . User::getRoleName($role) . ".",
             route('permissions.index'),
             ['role' => $role, 'permission' => $permission->slug, 'action' => $action]
         );

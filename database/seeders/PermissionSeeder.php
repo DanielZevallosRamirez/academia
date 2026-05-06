@@ -21,7 +21,7 @@ class PermissionSeeder extends Seeder
         }
 
         // Asignar permisos por defecto a cada rol
-        $roles = ['admin', 'profesor', 'estudiante'];
+        $roles = array_keys(\App\Models\User::ROLES);
         
         foreach ($roles as $role) {
             $defaultSlugs = Permission::getDefaultPermissionsForRole($role);
