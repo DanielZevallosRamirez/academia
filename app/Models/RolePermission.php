@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class RolePermission extends Model
 {
@@ -60,12 +61,26 @@ class RolePermission extends Model
 
     /**
      * Activar o desactivar un permiso para un rol
+     * Usa DB::statement con cast explícito para PostgreSQL
      */
     public static function setPermission(string $role, int $permissionId, bool $isActive): void
     {
-        self::updateOrCreate(
-            ['role' => $role, 'permission_id' => $permissionId],
-            ['is_active' => $isActive]
-        );
+        $existing = self::where('role', $role)
+            ->where('permission_id', $permissionId)
+            ->first();
+        
+        $boolValue = $isActive ? 'true' : 'false';
+        
+        if ($existing) {
+            DB::statement(
+                'UPDATE role_permissions SET is_active = ?::boolean, updated_at = NOW() WHERE role = ? AND permission_id = ?',
+                [$boolValue, $role, $permissionId]
+            );
+        } else {
+            DB::statement(
+                'INSERT INTO role_permissions (role, permission_id, is_active, created_at, updated_at) VALUES (?, ?, ?::boolean, NOW(), NOW())',
+                [$role, $permissionId, $boolValue]
+            );
+        }
     }
 }

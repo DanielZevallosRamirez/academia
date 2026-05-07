@@ -130,15 +130,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     
     // Usuarios - gestion unificada con permisos
-    Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:students.create');
-    Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('permission:students.create');
-    Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('permission:students.view');
-    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->middleware('permission:students.view');
-    Route::get('users/{user}/qr', [UserController::class, 'qrCode'])->name('users.qr')->middleware('permission:students.view');
-    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:students.edit');
-    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:students.edit');
-    Route::post('users/{user}/regenerate-qr', [UserController::class, 'regenerateQr'])->name('users.regenerate-qr')->middleware('permission:students.edit');
-    Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:students.delete');
+    Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');
+    Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('permission:users.create');
+    Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('permission:users.view');
+    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->middleware('permission:users.view');
+    Route::get('users/{user}/qr', [UserController::class, 'qrCode'])->name('users.qr')->middleware('permission:users.view');
+    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
+    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.edit');
+    Route::post('users/{user}/regenerate-qr', [UserController::class, 'regenerateQr'])->name('users.regenerate-qr')->middleware('permission:users.edit');
+    Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.delete');
     
     // Estudiantes - con permisos (rutas específicas ANTES de rutas con parámetros) - Mantener para compatibilidad
     Route::get('students/create', [StudentController::class, 'create'])->name('students.create')->middleware('permission:students.create');

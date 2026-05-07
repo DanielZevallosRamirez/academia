@@ -311,6 +311,43 @@ class Permission extends Model
                 'order' => 2,
             ],
 
+            // Módulo Usuarios
+            [
+                'name' => 'Ver Usuarios',
+                'slug' => 'users.view',
+                'module' => 'users',
+                'description' => 'Ver lista de usuarios del sistema',
+                'order' => 1,
+            ],
+            [
+                'name' => 'Crear Usuarios',
+                'slug' => 'users.create',
+                'module' => 'users',
+                'description' => 'Crear nuevos usuarios',
+                'order' => 2,
+            ],
+            [
+                'name' => 'Editar Usuarios',
+                'slug' => 'users.edit',
+                'module' => 'users',
+                'description' => 'Modificar datos de usuarios',
+                'order' => 3,
+            ],
+            [
+                'name' => 'Eliminar Usuarios',
+                'slug' => 'users.delete',
+                'module' => 'users',
+                'description' => 'Eliminar usuarios del sistema',
+                'order' => 4,
+            ],
+            [
+                'name' => 'Cambiar Rol Usuario',
+                'slug' => 'users.role',
+                'module' => 'users',
+                'description' => 'Cambiar el rol de usuarios',
+                'order' => 5,
+            ],
+
             // Módulo Configuración
             [
                 'name' => 'Ver Configuracion',
@@ -379,6 +416,7 @@ class Permission extends Model
                 'programs.courses', 'programs.modules', 'programs.contents',
                 'students.view', 'students.create', 'students.edit', 'students.delete', 'students.enroll',
                 'professors.view', 'professors.create', 'professors.edit', 'professors.delete',
+                'users.view', 'users.create', 'users.edit', 'users.delete', 'users.role',
                 'payments.view', 'payments.create', 'payments.approve', 'payments.delete',
                 'attendance.view', 'attendance.create', 'attendance.scan',
                 'sessions.view', 'sessions.create', 'sessions.edit', 'sessions.delete',
@@ -388,10 +426,11 @@ class Permission extends Model
             ],
             'secretario' => [
                 // Secretario(a) - Atencion al publico, matriculas, pagos
-                'dashboard.view', 'dashboard.stats',
+                'dashboard.view',
                 'programs.view',
                 'students.view', 'students.create', 'students.edit', 'students.enroll',
-                'payments.view', 'payments.create', 'payments.approve',
+                'users.view',
+                'payments.view', 'payments.create',
                 'attendance.view',
                 'sessions.view',
                 'notifications.view',
@@ -402,6 +441,7 @@ class Permission extends Model
                 'programs.view', 'programs.create', 'programs.edit',
                 'students.view', 'students.create', 'students.edit', 'students.enroll',
                 'professors.view', 'professors.create', 'professors.edit',
+                'users.view', 'users.create', 'users.edit',
                 'payments.view', 'payments.create', 'payments.approve',
                 'attendance.view',
                 'sessions.view',
