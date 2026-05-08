@@ -1,0 +1,10 @@
+{
+  "phpExtensions": [
+    "gd",
+    "pdo_pgsql",
+    "pgsql",
+    "zip",
+    "bcmath",
+    "intl"
+  ]
+}
