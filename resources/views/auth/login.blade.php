@@ -132,5 +132,54 @@
             </a>
         </p>
     @endif
+
+    <!-- Demo Credentials -->
+    @if (config('app.debug'))
+    <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <div class="flex items-center gap-2 mb-3">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 class="text-sm font-semibold text-amber-800">Credenciales de Prueba</h3>
+        </div>
+        <div class="space-y-2 text-xs" id="demo-credentials">
+            <button type="button" onclick="fillCredentials('admin@academia.com', 'password', this)" class="w-full flex items-center justify-between p-2 bg-white rounded-lg border border-amber-100 hover:border-emerald-300 hover:bg-emerald-50 transition">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                    <span class="font-medium text-slate-700">Administrador</span>
+                </div>
+                <code class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded">password</code>
+            </button>
+            <button type="button" onclick="fillCredentials('profesor@academia.com', 'password', this)" class="w-full flex items-center justify-between p-2 bg-white rounded-lg border border-amber-100 hover:border-emerald-300 hover:bg-emerald-50 transition">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    <span class="font-medium text-slate-700">Profesor</span>
+                </div>
+                <code class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded">password</code>
+            </button>
+            <button type="button" onclick="fillCredentials('estudiante@academia.com', 'password', this)" class="w-full flex items-center justify-between p-2 bg-white rounded-lg border border-amber-100 hover:border-emerald-300 hover:bg-emerald-50 transition">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <span class="font-medium text-slate-700">Estudiante</span>
+                </div>
+                <code class="text-slate-500 bg-slate-100 px-2 py-0.5 rounded">password</code>
+            </button>
+        </div>
+        <p class="mt-3 text-xs text-amber-600 text-center">Haz clic en un rol para autocompletar los campos</p>
+    </div>
+    
+    <script>
+        function fillCredentials(email, password, element) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            
+            // Visual feedback - resaltar el seleccionado
+            document.querySelectorAll('#demo-credentials button').forEach(function(btn) {
+                btn.classList.remove('border-emerald-400', 'bg-emerald-50', 'ring-2', 'ring-emerald-200');
+            });
+            element.classList.add('border-emerald-400', 'bg-emerald-50', 'ring-2', 'ring-emerald-200');
+        }
+    </script>
+    @endif
 </div>
 @endsection
