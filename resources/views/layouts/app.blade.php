@@ -125,5 +125,40 @@
             lucide.createIcons();
         });
     </script>
+
+    @if (!config('app.debug'))
+    <!-- Mensaje DevTools (solo en produccion) -->
+    <script>
+        // Mensaje en consola
+        console.log('%c⚠️ ADVERTENCIA', 'color: #f59e0b; font-size: 40px; font-weight: bold; text-shadow: 2px 2px 0 #000;');
+        console.log('%cEsta funcion del navegador esta destinada a desarrolladores.', 'color: #64748b; font-size: 16px;');
+        console.log('%cSi alguien te dijo que copiaras y pegaras algo aqui, es una estafa.', 'color: #ef4444; font-size: 14px;');
+        console.log('%cPara mas informacion: https://es.wikipedia.org/wiki/Self-XSS', 'color: #3b82f6; font-size: 12px;');
+        
+        // Crear elemento para mostrar en Elements
+        var devMessage = document.createElement('div');
+        devMessage.id = 'dev-tools-message';
+        devMessage.setAttribute('data-message', 'Esta funcion no esta disponible para usuarios finales');
+        devMessage.setAttribute('data-info', 'Sistema Academia - Todos los derechos reservados');
+        devMessage.setAttribute('data-warning', 'El uso indebido de estas herramientas puede violar los terminos de servicio');
+        devMessage.style.display = 'none';
+        document.body.appendChild(devMessage);
+        
+        // Agregar comentarios HTML visibles en Elements
+        var comment1 = document.createComment(' ============================================== ');
+        var comment2 = document.createComment(' ⚠️  ESTA FUNCION NO ESTA DISPONIBLE  ⚠️ ');
+        var comment3 = document.createComment(' El inspector de elementos ha sido deshabilitado ');
+        var comment4 = document.createComment(' para proteger la integridad del sistema. ');
+        var comment5 = document.createComment(' Sistema Academia © {{ date("Y") }} ');
+        var comment6 = document.createComment(' ============================================== ');
+        
+        document.body.insertBefore(comment1, document.body.firstChild);
+        document.body.insertBefore(comment2, document.body.firstChild);
+        document.body.insertBefore(comment3, document.body.firstChild);
+        document.body.insertBefore(comment4, document.body.firstChild);
+        document.body.insertBefore(comment5, document.body.firstChild);
+        document.body.insertBefore(comment6, document.body.firstChild);
+    </script>
+    @endif
 </body>
 </html>
