@@ -198,8 +198,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('attendance/session/{session}', [AttendanceController::class, 'session'])->name('attendance.session')->middleware('permission:attendance.view');
     Route::get('attendance/sessions/{session}/edit', [AttendanceController::class, 'editSession'])->name('attendance.edit-session')->middleware('permission:sessions.edit');
     Route::put('attendance/sessions/{session}', [AttendanceController::class, 'updateSession'])->name('attendance.update-session')->middleware('permission:sessions.edit');
-    Route::get('attendance/scanner/{session}', [AttendanceController::class, 'scanner'])->name('attendance.scanner')->middleware('permission:attendance.manage');
-    Route::post('attendance/scan/{session}', [AttendanceController::class, 'scanQr'])->name('attendance.scan')->middleware('permission:attendance.manage');
+    Route::get('attendance/scanner/{session}', [AttendanceController::class, 'scanner'])->name('attendance.scanner')->middleware('permission:attendance.scan');
+    Route::post('attendance/scan/{session}', [AttendanceController::class, 'scanQr'])->name('attendance.scan')->middleware('permission:attendance.scan');
 });
 
 require __DIR__.'/auth.php';
